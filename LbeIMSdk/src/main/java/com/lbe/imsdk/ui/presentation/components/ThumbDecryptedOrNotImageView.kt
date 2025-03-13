@@ -38,6 +38,7 @@ import coil3.toBitmap
 import com.google.gson.Gson
 import com.lbe.imsdk.R
 import com.lbe.imsdk.model.MessageEntity
+import com.lbe.imsdk.model.UploadStatus
 import com.lbe.imsdk.model.resp.MediaSource
 import com.lbe.imsdk.ui.presentation.viewmodel.ChatScreenViewModel
 import com.lbe.imsdk.ui.presentation.viewmodel.ChatScreenViewModel.Companion.CONTINUE_UPLOAD
@@ -70,10 +71,16 @@ fun ThumbDecryptedOrNotImageView(
         println("DecryptedOrNotImageView Json parse error -->> ${message.msgBody}")
     }
 
-    println("Thumb 缩略图 --->> width: $width, height: $height, thumbUrl: $thumbUrl")
+//    println("Thumb 缩略图 --->> width: $width, height: $height, thumbUrl: $thumbUrl")
     val rememberProgress = remember { ChatScreenViewModel.progressList[message.clientMsgID] }
     val progress = rememberProgress?.collectAsState()
     val isGif = FileUtils.isGif(message.localFile?.mimeType ?: "") || FileUtils.isGif(fullUrl)
+    if (fullUrl.isEmpty()) {
+        Log.d(
+            "断点状态机",
+            " --->>> cid: ${message.clientMsgID}, progress: $progress ,pendingUpload: ${message.pendingUpload} ,task: ${message.uploadTask}"
+        )
+    }
 
     Box(contentAlignment = Alignment.Center) {
         val ctx = LocalPlatformContext.current
@@ -91,12 +98,9 @@ fun ThumbDecryptedOrNotImageView(
                 if (fullUrl.isNotEmpty()) {
                     navController.navigate("${NavRoute.MEDIA_VIEWER}/${message.clientMsgID}")
                 } else {
-                    Log.d(
-                        CONTINUE_UPLOAD,
-                        "断点暂停 --->>> canPending: ${message.canPending}, progress： ${message.uploadTask?.progress}"
-                    )
-                    if (message.localFile?.isBigFile == true && message.canPending) {
+                    if (message.localFile?.isBigFile == true) {
                         if (!message.pendingUpload && (message.uploadTask?.progress != 1.0f)) {
+                            Log.d("断点状态机", "暂停?")
                             viewModel?.pendingUpload(message.clientMsgID, progress = progress)
                         } else {
                             Log.d(CONTINUE_UPLOAD, "续传 ---->>>> ${message.uploadTask}")
@@ -115,10 +119,10 @@ fun ThumbDecryptedOrNotImageView(
                                 if (mCursor.moveToFirst()) {
                                     val path = mCursor.getString(0)
                                     Log.d(
-                                        ChatScreenViewModel.UPLOAD, "续传 ---->>>> path: $path"
+                                        "断点状态机", "续传 ---->>>> path: $path"
                                     )
                                     val file = File(path)
-                                    viewModel?.continueSplitTrunksUpload(message, file)
+                                    viewModel?.continueSplitTrunksUpload(message, file, ctx)
                                 }
                             }
                         }
@@ -142,7 +146,7 @@ fun ThumbDecryptedOrNotImageView(
                                 "ThumbnailGen",
                                 "bitmap --->> width: ${bitmap.width}, height: ${bitmap.height}"
                             )
-                            viewModel?.upload(message, bitmap)
+                            viewModel?.upload(message, bitmap, context)
                         }
                     }
                 },
@@ -155,8 +159,7 @@ fun ThumbDecryptedOrNotImageView(
                     .data(if (isGif) fullUrl else thumbUrl)
                     .httpHeaders(NetworkHeaders.Builder().apply {
                         set("lbeToken", ChatScreenViewModel.lbeToken)
-                    }.build())
-                    .decoderFactory(
+                    }.build()).decoderFactory(
                         DecryptedDecoder.Factory(
                             url = if (isGif) fullUrl else thumbUrl,
                             key = if (isGif) fullKey else thumbKey

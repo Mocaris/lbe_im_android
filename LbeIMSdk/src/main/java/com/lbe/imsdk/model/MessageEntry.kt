@@ -30,11 +30,11 @@ class MessageEntity : RealmObject {
 
     var pendingUpload: Boolean = false
 
-    var canPending: Boolean = false
+//    var canPending: Boolean = false
 
     var localFile: LocalMediaFile? = null
 
-    var uploadTask: UploadTask? = null
+    var uploadTask: UploadTask? = UploadTask()
 
     var customerServiceNickname: String = ""
     var customerServiceAvatar: String = ""
@@ -57,13 +57,13 @@ class MessageEntity : RealmObject {
             message.pendingUpload = source.pendingUpload
             message.localFile = source.localFile
             message.uploadTask = source.uploadTask
-            message.canPending = source.canPending
+//            message.canPending = source.canPending
             return message
         }
     }
 
     override fun toString(): String {
-        return "MessageEntity(sessionId: $sessionId, senderUid: $senderUid, msgBody: $msgBody, msgType: $msgType, msgSeq: $msgSeq, clientMsgID: $clientMsgID, sendTime: $sendTime, sendSuccess: $sendSuccess, readed: $readed, pendingUpload: $pendingUpload, \n uploadTask: $uploadTask)"
+        return "MessageEntity(sessionId: $sessionId, senderUid: $senderUid, msgBody: $msgBody, msgType: $msgType, msgSeq: $msgSeq, clientMsgID: $clientMsgID, sendTime: $sendTime, sendSuccess: $sendSuccess, readed: $readed, pendingUpload: $pendingUpload, \n uploadTask: $uploadTask, \n localFile: $localFile)"
     }
 }
 
@@ -75,6 +75,18 @@ class LocalMediaFile : EmbeddedRealmObject {
     var mimeType: String = ""
     var width: Int = 0
     var height: Int = 0
+
+    override fun toString(): String {
+        return "LocalMediaFile(fileName: $fileName, path: $path, size: $size, isBigFile: $isBigFile, mimeType: $mimeType, width: $width, height: $height)"
+    }
+}
+
+enum class UploadStatus {
+    INIT,
+    THUMBNAIL_UPLOADED,
+    CHUNKS_INIT,
+    UPLOADING,
+    CHUNKS_MERGE_COMPLETED
 }
 
 class UploadTask : EmbeddedRealmObject {
@@ -84,8 +96,9 @@ class UploadTask : EmbeddedRealmObject {
     var initTrunksRepJson: String = ""
     var reqBodyJson: String = ""
     var lastTrunkUploadLength: Long = 0
+    var uploadStatus: String = UploadStatus.INIT.name
 
     override fun toString(): String {
-        return "UploadTask(progress:$progress, taskLength: $taskLength, executeIndex: $executeIndex,  lastTrunkUploadLength: $lastTrunkUploadLength,\n initTrunksRepJson --->>> $initTrunksRepJson,\n reqBodyJson --->>> $reqBodyJson)"
+        return "UploadTask(progress:$progress, taskLength: $taskLength, uploadStatus: $uploadStatus ,executeIndex: $executeIndex,  lastTrunkUploadLength: $lastTrunkUploadLength,\n initTrunksRepJson --->>> $initTrunksRepJson,\n reqBodyJson --->>> $reqBodyJson)"
     }
 }

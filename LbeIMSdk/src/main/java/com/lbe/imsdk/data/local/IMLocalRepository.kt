@@ -32,7 +32,7 @@ object IMLocalRepository {
 
     fun findAllPendingUploadMediaMessages(sessionId: String): List<MessageEntity> {
         return realm.query<MessageEntity>(
-            query = "sessionId == $0 AND (msgType == 2 || msgType == 3) AND pendingUpload == true",
+            query = "sessionId == $0 AND (msgType == 2 || msgType == 3)",// AND pendingUpload == true",
             sessionId
         ).sort("sendTime", Sort.ASCENDING).find()
     }
@@ -47,7 +47,7 @@ object IMLocalRepository {
         }
     }
 
-    suspend fun findMediaMsgAndUpdateProgress(clientMsgID: String, uploadTask: UploadTask?) {
+    suspend fun findMediaMsgPendingAndUpdateProgress(clientMsgID: String, uploadTask: UploadTask?) {
         Log.d(
             ChatScreenViewModel.REALM,
             "发送 Media 消息 --- $clientMsgID 更新上传进度： ${uploadTask?.progress}, executeIndex: ${uploadTask?.executeIndex}"
@@ -58,6 +58,19 @@ object IMLocalRepository {
             ).first().find()
             msg?.uploadTask = uploadTask
             msg?.pendingUpload = true
+        }
+    }
+
+    suspend fun findMediaMsgAndUpdateProgress(clientMsgID: String, uploadTask: UploadTask?) {
+        Log.d(
+            ChatScreenViewModel.REALM,
+            "发送 Media 消息 --- $clientMsgID 更新上传进度： ${uploadTask?.progress}, executeIndex: ${uploadTask?.executeIndex}"
+        )
+        realm.write {
+            val msg = query<MessageEntity>(
+                query = "clientMsgID == $0", clientMsgID
+            ).first().find()
+            msg?.uploadTask = uploadTask
         }
     }
 
@@ -81,7 +94,7 @@ object IMLocalRepository {
             val msg = query<MessageEntity>(
                 query = "clientMsgID == $0", clientMsgID
             ).first().find()
-            msg?.canPending = true
+//            msg?.canPending = true
         }
     }
 

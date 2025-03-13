@@ -481,6 +481,8 @@ fun ChatScreen(
                                                         path = uri.toString(),
                                                         mime = mime,
                                                         isImage = FileUtils.isImage(mime),
+                                                        fileName = fName,
+                                                        fileSize = file.length(),
                                                     )
                                                     if (FileUtils.isImage(mediaMessage.mime) && mediaMessage.file.length() > 1024 * 1024 * 10) {
                                                         Toast.makeText(

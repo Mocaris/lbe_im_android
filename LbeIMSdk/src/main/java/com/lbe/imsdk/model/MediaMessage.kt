@@ -5,11 +5,13 @@ import java.io.File
 
 data class MediaMessage(
     val file: File,
+    val fileName: String,
     val isImage: Boolean = false,
     val mime: String = "",
     val width: Int,
     val height: Int,
     val path: String = "",
-    var mediaSource: MediaSource? = null
+    var mediaSource: MediaSource? = null,
+    var fileSize: Long,
 )
 

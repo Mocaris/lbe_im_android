@@ -1136,10 +1136,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
             val tempUploadInfo = tempUploadInfos[message.clientMsgID]
             val thumbWidth = thumbBitmap.width
             val thumbHeight = thumbBitmap.height
-            Log.d(
-                "断点状态机",
-                "bigFileUpload 续传 --->>> uploadStatus: ${message.uploadTask?.uploadStatus}, message: $message  \ntempUploadInfo: $tempUploadInfo"
-            )
+
             tempUploadInfo?.let { it ->
                 it.thumbWidth = thumbWidth
                 it.thumbHeight = thumbHeight
@@ -1436,10 +1433,6 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
             }
             uploadTasks[message.clientMsgID] = newTask
 
-            Log.d(
-                "断点状态机",
-                "continueSplitTrunksUpload 续传 --->>> uploadStatus: ${newTask.uploadStatus}"
-            )
             if (newTask.uploadStatus == UploadStatus.INIT.name || newTask.uploadStatus == UploadStatus.THUMBNAIL_UPLOADED.name || newTask.uploadStatus == UploadStatus.CHUNKS_INIT.name) {
                 val thumbBitmap = generateThumbnail(message, context)
                 val tempUploadInfo = genTempUploadInfo(message)

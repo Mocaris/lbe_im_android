@@ -71,16 +71,9 @@ fun ThumbDecryptedOrNotImageView(
         println("DecryptedOrNotImageView Json parse error -->> ${message.msgBody}")
     }
 
-//    println("Thumb 缩略图 --->> width: $width, height: $height, thumbUrl: $thumbUrl")
     val rememberProgress = remember { ChatScreenViewModel.progressList[message.clientMsgID] }
     val progress = rememberProgress?.collectAsState()
     val isGif = FileUtils.isGif(message.localFile?.mimeType ?: "") || FileUtils.isGif(fullUrl)
-    if (fullUrl.isEmpty()) {
-        Log.d(
-            "断点状态机",
-            " --->>> cid: ${message.clientMsgID}, progress: $progress ,pendingUpload: ${message.pendingUpload} ,task: ${message.uploadTask}"
-        )
-    }
 
     Box(contentAlignment = Alignment.Center) {
         val ctx = LocalPlatformContext.current
@@ -100,7 +93,6 @@ fun ThumbDecryptedOrNotImageView(
                 } else {
                     if (message.localFile?.isBigFile == true) {
                         if (!message.pendingUpload && (message.uploadTask?.progress != 1.0f)) {
-                            Log.d("断点状态机", "暂停?")
                             viewModel?.pendingUpload(message.clientMsgID, progress = progress)
                         } else {
                             Log.d(CONTINUE_UPLOAD, "续传 ---->>>> ${message.uploadTask}")
@@ -118,9 +110,6 @@ fun ThumbDecryptedOrNotImageView(
                             metaCursor?.use { mCursor ->
                                 if (mCursor.moveToFirst()) {
                                     val path = mCursor.getString(0)
-                                    Log.d(
-                                        "断点状态机", "续传 ---->>>> path: $path"
-                                    )
                                     val file = File(path)
                                     viewModel?.continueSplitTrunksUpload(message, file, ctx)
                                 }

@@ -8,13 +8,13 @@ import retrofit2.converter.gson.GsonConverterFactory
 object RetrofitInstance {
 
     // uat
-//    private const val BASE_URL = "https://mob.imsz.online/"
+    private const val BASE_URL = "https://mob.imsz.online/"
 
     // sit
 //    private const val BASE_URL = "http://www.im-sit-dreaminglife.cn/"
 
     // dev
-     private const val BASE_URL = "http://www.im-dreaminglife.cn/"
+//     private const val BASE_URL = "http://www.im-dreaminglife.cn/"
 
     var IM_URL = ""
     var UPLOAD_BASE_URL = ""

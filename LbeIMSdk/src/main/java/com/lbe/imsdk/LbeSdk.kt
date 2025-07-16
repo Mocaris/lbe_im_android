@@ -16,6 +16,7 @@ object LbeSdk {
         email: String,
         language: String,
         device: String,
+        source: String,
         headerIcon: String,
         groupID: String
     ) {
@@ -29,7 +30,7 @@ object LbeSdk {
             headerIcon = headerIcon,
             language = language,
             device = device,
-            source = "",
+            source = source,
             extraInfo = mutableMapOf(),
             groupID = groupID
         )

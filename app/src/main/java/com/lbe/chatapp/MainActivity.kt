@@ -43,7 +43,8 @@ class MainActivity : ComponentActivity() {
                         language = language,
                         device = device,
                         headerIcon = headerIcon,
-                        groupID = groupID
+                        groupID = groupID,
+                        source = ""
                     )
                     finish()
                 }

@@ -26,12 +26,12 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
     }
 
     kotlinOptions {
-        jvmTarget = '17'
+        jvmTarget = '11'
     }
 
     buildFeatures {
@@ -84,7 +84,7 @@ dependencies {
     api 'io.reactivex.rxjava2:rxkotlin:2.4.0'
 
     // Gson
-    api 'com.google.code.gson:gson:2.10.1'
+    api 'com.google.code.gson:gson:2.11.0'
 
     // Protobuf
     api 'com.google.protobuf:protobuf-kotlin:4.29.0-RC1'
@@ -98,7 +98,7 @@ dependencies {
 
     // Retrofit
     api 'com.squareup.retrofit2:retrofit:2.11.0'
-    api 'com.squareup.retrofit2:converter-gson:2.9.0'
+    api 'com.squareup.retrofit2:converter-gson:2.11.0'
     api 'com.squareup.okhttp3:logging-interceptor:5.0.0-alpha.2'
 
     // Exoplayer

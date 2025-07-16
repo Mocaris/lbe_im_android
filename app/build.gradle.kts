@@ -5,11 +5,12 @@ plugins {
 
 android {
     namespace = "com.lbe.chatapp"
+
     compileSdk = 34
 
     defaultConfig {
         applicationId = "com.lbe.chatapp"
-        minSdk = 28
+        minSdk = 24
         versionCode = 21
         versionName = "0.2.1"
 
@@ -41,11 +42,11 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
     }
     kotlinOptions {
-        jvmTarget = "17"
+        jvmTarget = "11"
     }
     buildFeatures {
         compose = true
@@ -54,16 +55,7 @@ android {
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.1"
     }
-    packaging {
-        resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
-        }
-    }
-    java {
-        toolchain {
-            languageVersion.set(JavaLanguageVersion.of(17))
-        }
-    }
+
 }
 
 dependencies {
@@ -77,11 +69,11 @@ dependencies {
 //    implementation("androidx.compose.material3:material3")
 //    implementation("androidx.documentfile:documentfile:1.0.1")
 //    implementation("androidx.navigation:navigation-compose:2.8.3")
-//    testImplementation("junit:junit:4.13.2")
-//    androidTestImplementation("androidx.test.ext:junit:1.2.1")
-//    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
+    testImplementation("junit:junit:4.13.2")
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
 //    androidTestImplementation(platform("androidx.compose:compose-bom:2024.10.00"))
-//    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4:1.5.1")
 //    debugImplementation("androidx.compose.ui:ui-tooling")
 //    debugImplementation("androidx.compose.ui:ui-test-manifest")
 

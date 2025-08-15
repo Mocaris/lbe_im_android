@@ -1,32 +1,24 @@
 package com.lbe.imsdk
 
-import android.annotation.SuppressLint
-import android.os.Build
-import android.os.Build.VERSION.SDK_INT
-import android.os.Bundle
-import android.util.Log
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.viewModels
-import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
+import android.annotation.*
+import android.os.*
+import android.os.Build.VERSION.*
+import android.util.*
+import androidx.activity.*
+import androidx.activity.compose.*
+import androidx.compose.ui.platform.*
+import androidx.lifecycle.viewmodel.compose.*
+import androidx.navigation.compose.*
 import coil3.ImageLoader
-import coil3.gif.AnimatedImageDecoder
-import coil3.gif.GifDecoder
-import coil3.video.VideoFrameDecoder
-import com.google.gson.Gson
-import com.lbe.imsdk.model.InitArgs
-import com.lbe.imsdk.ui.presentation.components.NavRoute
-
-import com.lbe.imsdk.ui.presentation.screen.ChatScreen
-import com.lbe.imsdk.ui.presentation.screen.MediaViewer
-import com.lbe.imsdk.ui.presentation.viewmodel.ChatScreenViewModel
-import com.lbe.imsdk.ui.theme.ChatAppTheme
-import java.util.Locale
+import coil3.gif.*
+import coil3.video.*
+import com.google.gson.*
+import com.lbe.imsdk.model.*
+import com.lbe.imsdk.ui.presentation.components.*
+import com.lbe.imsdk.ui.presentation.screen.*
+import com.lbe.imsdk.ui.presentation.viewmodel.*
+import com.lbe.imsdk.ui.theme.*
+import java.util.*
 
 class LbeChatActivity : ComponentActivity() {
 

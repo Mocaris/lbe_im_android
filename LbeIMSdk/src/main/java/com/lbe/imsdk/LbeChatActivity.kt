@@ -1,11 +1,15 @@
 package com.lbe.imsdk
 
+import android.annotation.SuppressLint
+import android.os.Build
 import android.os.Build.VERSION.SDK_INT
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -25,21 +29,23 @@ import com.lbe.imsdk.ui.theme.ChatAppTheme
 import java.util.Locale
 
 class LbeChatActivity : ComponentActivity() {
+
+    private val viewModel: ChatScreenViewModel by viewModels<ChatScreenViewModel>()
+
+    @SuppressLint("ObsoleteSdkInt")
     override fun onCreate(savedInstanceState: Bundle?) {
         val initArgsJson = intent.getStringExtra("initArgs")
         val initArgs = Gson().fromJson(initArgsJson, InitArgs::class.java)
         updateAppLanguage(initArgs.language)
-        
         super.onCreate(savedInstanceState)
+        viewModel.initSdk(initArgs)
         Log.d("LbeIMSdk", "Sdk 接收 args --->> $initArgs")
         setContent {
             ChatAppTheme {
                 val navController = rememberNavController()
                 val context = LocalContext.current
-                val viewModel: ChatScreenViewModel = viewModel()
-                viewModel.initSdk(initArgs)
                 val gifImageLoader = ImageLoader.Builder(context).components {
-                    if (SDK_INT >= 28) {
+                    if (SDK_INT >= Build.VERSION_CODES.P) {
                         add(AnimatedImageDecoder.Factory())
                     } else {
                         add(GifDecoder.Factory())
@@ -72,7 +78,7 @@ class LbeChatActivity : ComponentActivity() {
             "zh", "zh_cn", "zh-cn" -> Locale.CHINESE
             else -> Locale.ENGLISH
         }
-        
+
         val config = resources.configuration
         config.setLocale(locale)
         val context = createConfigurationContext(config)

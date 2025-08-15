@@ -1,39 +1,43 @@
 package com.lbe.imsdk.data.remote
 
-import com.lbe.imsdk.model.req.FaqReqBody
-import com.lbe.imsdk.model.req.HistoryBody
-import com.lbe.imsdk.model.req.MarkReadReqBody
-import com.lbe.imsdk.model.req.MsgBody
-import com.lbe.imsdk.model.req.SessionBody
-import com.lbe.imsdk.model.req.SessionListReq
-import com.lbe.imsdk.model.req.TimeoutReqBody
-import com.lbe.imsdk.model.resp.FaqResp
-import com.lbe.imsdk.model.resp.History
-import com.lbe.imsdk.model.resp.SendMsg
-import com.lbe.imsdk.model.resp.Session
-import com.lbe.imsdk.model.resp.SessionListRep
-import com.lbe.imsdk.model.resp.TimeoutRespBody
-import com.lbe.imsdk.service.RetrofitInstance
+import com.lbe.imsdk.model.req.*
+import com.lbe.imsdk.model.resp.*
+import com.lbe.imsdk.service.*
+import okhttp3.*
+import okhttp3.logging.*
+import retrofit2.*
+import retrofit2.converter.gson.*
 
-object LbeImRepository {
-    private val lbeIMRepository = RetrofitInstance.imApiService
+class LbeImApiRepository(private val imBaseUrl:String) {
+//    private val lbeIMRepository = RetrofitInstance.imApiService
+
+    val imApiService: LbeIMAPiService by lazy {
+        val loggingInterceptor = HttpLoggingInterceptor().apply {
+            level = HttpLoggingInterceptor.Level.BODY
+        }
+        val okHttpClient = OkHttpClient.Builder().addInterceptor(loggingInterceptor).build()
+
+        val retrofit = Retrofit.Builder().baseUrl(imBaseUrl).client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create()).build()
+        retrofit.create(LbeIMAPiService::class.java)
+    }
 
     suspend fun fetchSessionList(
         lbeToken: String, lbeIdentity: String, body: SessionListReq
     ): SessionListRep {
-        return lbeIMRepository.fetchSessionList(
+        return imApiService.fetchSessionList(
             lbeToken = lbeToken, lbeIdentity = lbeIdentity, body
         )
     }
 
     suspend fun createSession(lbeSign: String, lbeIdentity: String, body: SessionBody): Session {
-        return lbeIMRepository.createSession(lbeSign = lbeSign, lbeIdentity = lbeIdentity, body)
+        return imApiService.createSession(lbeSign = lbeSign, lbeIdentity = lbeIdentity, body)
     }
 
     suspend fun fetchHistory(
         lbeSign: String, lbeToken: String, lbeIdentity: String, body: HistoryBody
     ): History {
-        return lbeIMRepository.fetchHistory(
+        return imApiService.fetchHistory(
             lbeSign = lbeSign, lbeToken = lbeToken, lbeIdentity = lbeIdentity, body = body
         )
     }
@@ -41,7 +45,7 @@ object LbeImRepository {
     suspend fun sendMsg(
         lbeToken: String, lbeSession: String, lbeIdentity: String, body: MsgBody
     ): SendMsg {
-        return lbeIMRepository.sendMsg(
+        return imApiService.sendMsg(
             lbeToken = lbeToken, lbeSession = lbeSession, lbeIdentity = lbeIdentity, body = body
         )
     }
@@ -49,7 +53,7 @@ object LbeImRepository {
     suspend fun fetchTimeoutConfig(
         lbeSign: String, lbeToken: String, lbeIdentity: String
     ): TimeoutRespBody {
-        return lbeIMRepository.fetchTimeoutConfig(
+        return imApiService.fetchTimeoutConfig(
             lbeSign = lbeSign,
             lbeToken = lbeToken,
             lbeIdentity = lbeIdentity,
@@ -60,7 +64,7 @@ object LbeImRepository {
     suspend fun markRead(
         lbeSign: String, lbeToken: String, lbeIdentity: String, body: MarkReadReqBody
     ) {
-        lbeIMRepository.markRead(
+        imApiService.markRead(
             lbeSign = lbeSign, lbeToken = lbeToken, lbeIdentity = lbeIdentity, body = body
         )
     }
@@ -68,7 +72,7 @@ object LbeImRepository {
     suspend fun faq(
         lbeSession: String, lbeToken: String, lbeIdentity: String, body: FaqReqBody
     ): FaqResp {
-        return lbeIMRepository.faq(
+        return imApiService.faq(
             lbeToken = lbeToken, lbeIdentity = lbeIdentity, lbeSession = lbeSession, body = body
         )
     }
@@ -79,7 +83,7 @@ object LbeImRepository {
         lbeIdentity: String,
         lbeSession: String,
     ) {
-        lbeIMRepository.turnCustomerService(
+        imApiService.turnCustomerService(
             lbeSign = lbeSign,
             lbeToken = lbeToken,
             lbeIdentity = lbeIdentity,

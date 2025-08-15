@@ -1,106 +1,57 @@
 package com.lbe.imsdk.ui.presentation.viewmodel
 
 import NetworkMonitor
-import android.annotation.SuppressLint
-import android.app.Application
-import android.content.Context
-import android.content.SharedPreferences
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.media.MediaMetadataRetriever
-import android.net.Uri
-import android.os.Build
-import android.util.Log
-import androidx.compose.foundation.lazy.LazyListState
+import android.annotation.*
+import android.app.*
+import android.content.*
+import android.graphics.*
+import android.media.*
+import android.net.*
+import android.os.*
+import android.util.*
+import androidx.compose.foundation.lazy.*
+import androidx.compose.runtime.*
 import androidx.compose.runtime.State
-import androidx.core.net.toFile
-import androidx.core.net.toUri
-import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.viewModelScope
-import com.google.gson.Gson
-import com.tinder.scarlet.Message
-import com.tinder.scarlet.Scarlet
-import com.tinder.scarlet.WebSocket
-import com.tinder.scarlet.WebSocket.Event.OnConnectionClosed
-import com.tinder.scarlet.WebSocket.Event.OnConnectionClosing
-import com.tinder.scarlet.WebSocket.Event.OnConnectionFailed
-import com.tinder.scarlet.WebSocket.Event.OnConnectionOpened
-import com.tinder.scarlet.WebSocket.Event.OnMessageReceived
-import com.tinder.scarlet.streamadapter.rxjava2.RxJava2StreamAdapterFactory
-import com.tinder.scarlet.websocket.okhttp.newWebSocketFactory
-import com.lbe.imsdk.data.local.IMLocalRepository
-import com.lbe.imsdk.data.local.IMLocalRepository.findMediaMsgAndUpdateProgress
-import com.lbe.imsdk.data.local.IMLocalRepository.findMediaMsgPendingAndUpdateProgress
-import com.lbe.imsdk.data.local.IMLocalRepository.findMsgByClientMsgId
-import com.lbe.imsdk.data.remote.LbeConfigRepository
-import com.lbe.imsdk.data.remote.LbeImRepository
-import com.lbe.imsdk.data.remote.UploadRepository
-import com.lbe.imsdk.model.InitArgs
-import com.lbe.imsdk.model.LocalMediaFile
-import com.lbe.imsdk.model.MediaMessage
-import com.lbe.imsdk.model.MessageEntity
-import com.lbe.imsdk.model.TempUploadInfo
-import com.lbe.imsdk.model.UploadStatus
-import com.lbe.imsdk.model.UploadTask
-import com.lbe.imsdk.model.proto.IMMsg
-import com.lbe.imsdk.model.req.CompleteMultiPartUploadReq
-import com.lbe.imsdk.model.req.ConfigBody
-import com.lbe.imsdk.model.req.FaqReqBody
-import com.lbe.imsdk.model.req.HistoryBody
-import com.lbe.imsdk.model.req.InitMultiPartUploadBody
-import com.lbe.imsdk.model.req.MarkReadReqBody
-import com.lbe.imsdk.model.req.MsgBody
-import com.lbe.imsdk.model.req.Pagination
-import com.lbe.imsdk.model.req.Part
-import com.lbe.imsdk.model.req.SeqCondition
-import com.lbe.imsdk.model.req.SessionBody
-import com.lbe.imsdk.model.req.SessionListReq
-import com.lbe.imsdk.model.resp.CompleteMultiPartUploadRep
-import com.lbe.imsdk.model.resp.InitMultiPartUploadRep
-import com.lbe.imsdk.model.resp.MediaSource
-import com.lbe.imsdk.model.resp.Resource
-import com.lbe.imsdk.model.resp.SessionEntry
-import com.lbe.imsdk.model.resp.SingleUploadRep
-import com.lbe.imsdk.model.resp.Thumbnail
-import com.lbe.imsdk.service.ChatService
-import com.lbe.imsdk.service.DynamicHeaderUrlRequestFactory
-import com.lbe.imsdk.service.RetrofitInstance
-import com.lbe.imsdk.ui.presentation.components.ProgressRequestBody
+import androidx.core.content.*
+import androidx.core.net.*
+import androidx.lifecycle.*
+import com.google.gson.*
+import com.lbe.imsdk.data.local.*
+import com.lbe.imsdk.data.remote.*
+import com.lbe.imsdk.model.*
+import com.lbe.imsdk.model.proto.*
+import com.lbe.imsdk.model.req.*
+import com.lbe.imsdk.model.resp.*
+import com.lbe.imsdk.service.*
+import com.lbe.imsdk.ui.presentation.components.*
 import com.lbe.imsdk.ui.presentation.components.ProgressRequestBody.Companion.toRequestBody
-import com.lbe.imsdk.ui.presentation.screen.ChatScreenUiState
+import com.lbe.imsdk.ui.presentation.screen.*
+import com.lbe.imsdk.utils.*
 import com.lbe.imsdk.utils.Converts.entityToMediaSendBody
 import com.lbe.imsdk.utils.Converts.entityToSendBody
 import com.lbe.imsdk.utils.Converts.protoToEntity
 import com.lbe.imsdk.utils.Converts.protoTypeConvert
 import com.lbe.imsdk.utils.Converts.sendBodyToEntity
-import com.lbe.imsdk.utils.FileLogger
 import com.lbe.imsdk.utils.TimeUtils.timeStampGen
 import com.lbe.imsdk.utils.UUIDUtils.uuidGen
-import com.lbe.imsdk.utils.UploadBigFileUtils
-import io.reactivex.disposables.Disposable
-import kotlinx.coroutines.CoroutineExceptionHandler
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import com.tinder.scarlet.*
+import com.tinder.scarlet.Message
+import com.tinder.scarlet.WebSocket
+import com.tinder.scarlet.WebSocket.Event.*
+import com.tinder.scarlet.streamadapter.rxjava2.*
+import com.tinder.scarlet.websocket.okhttp.*
+import io.reactivex.disposables.*
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
+import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.MultipartBody
-import okhttp3.OkHttpClient
 import okhttp3.RequestBody.Companion.asRequestBody
-import retrofit2.HttpException
-import java.io.ByteArrayOutputStream
-import java.io.File
-import java.io.IOException
-import java.io.InputStream
-import java.security.MessageDigest
-import java.time.Duration
-import java.util.Timer
-import java.util.TimerTask
+import retrofit2.*
+import java.io.*
+import java.security.*
+import java.util.*
+import java.util.concurrent.*
+import kotlin.collections.*
 
 enum class ConnectionStatus {
     NOT_STARTED, OPENED, CLOSED, CONNECTING, CLOSING, FAILED, RECEIVED
@@ -192,6 +143,13 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
 
     private val fileLogger = FileLogger(application)
 
+    // base api Repository
+    private lateinit var configApiRepository: LbeConfigApiRepository
+    // im api Repository
+    private var imApiRepository: LbeImApiRepository? = null
+    // oss api Repository
+    private var ossApiRepository: LbeOssApiRepository? = null
+
     init {
         networkMonitor.startMonitoring()
         // testOfflineTakeByCache()
@@ -237,6 +195,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         userAvatar = args.headerIcon
         lbeIdentity = args.lbeIdentity
         initArgs = args
+        configApiRepository = LbeConfigApiRepository(baseUrl = initArgs.domain.ifEmpty { BASE_URL })
         realInitSdk()
     }
 
@@ -247,7 +206,6 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
                 if (!networkAvailable()) {
                     return@launch
                 }
-                delay(100)
                 fetchConfig()
                 createSession()
                 viewModelScope.launch(Dispatchers.IO) {
@@ -271,7 +229,11 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
 
     private suspend fun <T> safeApiCall(apiCall: suspend () -> T): Result<T> {
         return try {
-            Result.success(apiCall())
+            val result = apiCall();
+            if (null == result) {
+                throw Exception("result is null")
+            }
+            Result.success(result)
         } catch (e: HttpException) {
             println("SafeApiCall HTTP error: ${e.code()} - ${e.message()}")
             Result.failure(e)
@@ -285,17 +247,16 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     private suspend fun fetchConfig() {
-        if (!networkAvailable()) {
-            return
-        }
         val result = safeApiCall {
-            LbeConfigRepository.fetchConfig(lbeSign, lbeIdentity, ConfigBody(0, 1))
+            configApiRepository.fetchConfig(lbeSign, lbeIdentity, ConfigBody(0, 1))
         }
         result.onSuccess { config ->
             Log.d(RETROFIT, "获取配置: $config")
             wssHost = config.data.ws[0]
-            RetrofitInstance.IM_URL = config.data.rest[0]
-            RetrofitInstance.UPLOAD_BASE_URL = config.data.oss[0]
+            val imBaseUrl = config.data.rest[0]
+            val ossBaseUrl = config.data.oss[0]
+            imApiRepository = LbeImApiRepository(imBaseUrl)
+            ossApiRepository = LbeOssApiRepository(ossBaseUrl)
         }.onFailure { err ->
             Log.d(RETROFIT, "获取配置异常: $err")
         }
@@ -306,7 +267,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
             return
         }
         val result = safeApiCall {
-            LbeImRepository.createSession(
+            imApiRepository?.createSession(
                 lbeSign, lbeIdentity, SessionBody(
                     identityID = initArgs.lbeIdentity,
                     nickId = nickId,
@@ -325,13 +286,15 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         }
         result.onSuccess { session ->
             Log.d(RETROFIT, "创建会话: $session")
-            lbeToken = session.data.token
+            lbeToken = session!!.data.token
             lbeSession = session.data.sessionId
             uid = session.data.uid
             if (sharedPreferences.getBoolean("needSaveNickId", false)) {
                 nickId = session.data.nickId
-                sharedPreferences.edit().putString("anonymousNickId", session.data.nickId).apply()
-                sharedPreferences.edit().putBoolean("needSaveNickId", false).apply()
+                sharedPreferences.edit {
+                    putString("anonymousNickId", session.data.nickId)
+                    putBoolean("needSaveNickId", false)
+                }
             }
             endSession = false
         }.onFailure { error ->
@@ -344,7 +307,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
             return
         }
         val result = safeApiCall {
-            LbeImRepository.fetchSessionList(
+            imApiRepository?.fetchSessionList(
                 lbeToken = lbeToken, lbeIdentity = lbeIdentity, body = SessionListReq(
                     pagination = Pagination(
                         pageNumber = 1, showNumber = 1000
@@ -354,7 +317,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         }
         result.onSuccess { sessionListRep ->
             Log.d(RETROFIT, "会话列表: $sessionListRep")
-            sessionList.addAll(sessionListRep.data.sessionList)
+            sessionList.addAll(sessionListRep!!.data.sessionList)
             currentSession = sessionList[currentSessionIndex]
             seq = currentSession?.latestMsg?.msgSeq ?: 0
             remoteLastMsgType = currentSession?.latestMsg?.msgType ?: 0
@@ -495,14 +458,14 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
             return
         }
         val result = safeApiCall {
-            LbeImRepository.fetchTimeoutConfig(
+            imApiRepository?.fetchTimeoutConfig(
                 lbeSign = lbeSign,
                 lbeToken = lbeToken,
                 lbeIdentity = lbeIdentity,
             )
         }
         result.onSuccess { timeoutConfig ->
-            timeOut = timeoutConfig.data.timeout
+            timeOut = timeoutConfig!!.data.timeout
             timeOutConfigOpen.update { timeoutConfig.data.isOpen }
             Log.d(REALM, "FetchTimeoutConfig ---->>> $timeoutConfig, timeOut: $timeOut")
         }.onFailure { err ->
@@ -516,7 +479,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         }
         viewModelScope.launch(Dispatchers.IO + coroutineExceptionHandler) {
             try {
-                val markRead = LbeImRepository.markRead(
+                val markRead = imApiRepository?.markRead(
                     lbeSign = lbeSign,
                     lbeToken = lbeToken,
                     lbeIdentity = lbeIdentity,
@@ -537,7 +500,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
             }
             delay(500)
             val result = safeApiCall {
-                LbeImRepository.faq(
+                imApiRepository?.faq(
                     lbeSession = lbeSession,
                     lbeToken = lbeToken,
                     lbeIdentity = lbeIdentity,
@@ -546,7 +509,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
             }
             result.onSuccess { faqResp ->
                 Log.d(RETROFIT, "什么 --->> $faqResp")
-                if (faqResp.code == 20006) {
+                if (faqResp!!.code == 20006) {
                     faqNotExistEvent.value += ","
                 }
             }
@@ -562,7 +525,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         }
         viewModelScope.launch(Dispatchers.IO + coroutineExceptionHandler) {
             try {
-                val turnCSResp = LbeImRepository.turnCustomerService(
+                imApiRepository?.turnCustomerService(
                     lbeSign = lbeSign,
                     lbeToken = lbeToken,
                     lbeIdentity = lbeIdentity,
@@ -580,7 +543,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         }
 
         val result = safeApiCall {
-            LbeImRepository.fetchHistory(
+            imApiRepository?.fetchHistory(
                 lbeSign = lbeSign,
                 lbeToken = lbeToken,
                 lbeIdentity = lbeIdentity,
@@ -593,7 +556,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         }
 
         result.onSuccess { history ->
-            Log.d(RETROFIT, "会话历史: ${history.data.content.size}")
+            Log.d(RETROFIT, "会话历史: ${history!!.data.content.size}")
             Log.d(REALM, "History sync")
             if (history.data.content.isNotEmpty()) {
                 seq = history.data.content.last().msgSeq
@@ -638,10 +601,10 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
             if (pending.uploadTask?.uploadStatus != UploadStatus.CHUNKS_MERGE_COMPLETED.name) {
                 if (!pending.pendingUpload) {
                     viewModelScope.launch(Dispatchers.IO + coroutineExceptionHandler) {
-                        findMediaMsgPendingAndUpdateProgress(
+                        IMLocalRepository.findMediaMsgPendingAndUpdateProgress(
                             pending.clientMsgID, pending.uploadTask
                         )
-                        val msg = findMsgByClientMsgId(pending.clientMsgID)
+                        val msg = IMLocalRepository.findMsgByClientMsgId(pending.clientMsgID)
                         updateSingleMessage(source = msg) { m ->
                             m.uploadTask = pending.uploadTask
                             m.pendingUpload = true
@@ -657,7 +620,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
     @SuppressLint("CheckResult")
     private fun observerConnection() {
         okHttpClient =
-            OkHttpClient.Builder().connectTimeout(Duration.ofDays(5)).retryOnConnectionFailure(true)
+            OkHttpClient.Builder().connectTimeout(5, TimeUnit.DAYS).retryOnConnectionFailure(true)
                 .build()
 
         val scarletInstance = Scarlet.Builder().webSocketFactory(
@@ -896,8 +859,9 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
     private fun send(messageSent: () -> Unit, preSend: () -> Unit, msgBody: MsgBody) {
         viewModelScope.launch(Dispatchers.IO + coroutineExceptionHandler) {
             preSend()
+            imApiRepository ?: return@launch
             try {
-                val senMsg = LbeImRepository.sendMsg(
+                val senMsg = imApiRepository!!.sendMsg(
                     lbeToken = lbeToken,
                     lbeIdentity = lbeIdentity,
                     lbeSession = lbeSession,
@@ -952,14 +916,15 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         var newClientMsgId = ""
         if (entity != null) {
             val list = entity.clientMsgID.split("-").toMutableList()
-            list.removeLast()
+            list.removeLastOrNull()
             list.add(timeStampGen().toString())
             newClientMsgId = list.joinToString(separator = "-")
             val body = entityToSendBody(entity, newClientMsgId)
             println("reSend ====>>> old: ${entity.clientMsgID}, new: $newClientMsgId")
             viewModelScope.launch(Dispatchers.IO + coroutineExceptionHandler) {
                 try {
-                    val senMsg = LbeImRepository.sendMsg(
+                    imApiRepository ?: return@launch
+                    val senMsg = imApiRepository!!.sendMsg(
                         lbeToken = lbeToken,
                         lbeSession = lbeSession,
                         lbeIdentity = lbeIdentity,
@@ -1033,14 +998,15 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         val thumbHeight = thumbBitmap.height
         tempUploadInfo?.let {
             viewModelScope.launch(Dispatchers.IO + coroutineExceptionHandler) {
+                ossApiRepository ?: return@launch
                 try {
                     val thumbnailResp = uploadThumbnail(thumbBitmap)
-
-                    val rep = UploadRepository.singleUpload(
+                    val rep = ossApiRepository!!.singleUpload(
                         file = MultipartBody.Part.createFormData(
                             "file",
                             it.mediaMessage.fileName,
-                            ProgressRequestBody(delegate = it.mediaMessage.file.asRequestBody(),
+                            ProgressRequestBody(
+                                delegate = it.mediaMessage.file.asRequestBody(),
                                 listener = { bytesWritten, contentLength ->
                                     val progress = (1.0 * bytesWritten) / contentLength
                                     Log.d(
@@ -1057,7 +1023,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
                                             val uploadTask = UploadTask()
                                             uploadTask.progress = 1.0f
                                             viewModelScope.launch(Dispatchers.IO) {
-                                                findMediaMsgAndUpdateProgress(
+                                                IMLocalRepository.findMediaMsgAndUpdateProgress(
                                                     message.clientMsgID, uploadTask
                                                 )
                                             }
@@ -1123,8 +1089,8 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     private suspend fun updateUploadStatus(clientMsgID: String, uploadTask: UploadTask?) {
-        findMediaMsgAndUpdateProgress(clientMsgID, uploadTask)
-        updateSingleMessage(findMsgByClientMsgId(clientMsgID)) { m ->
+        IMLocalRepository.findMediaMsgAndUpdateProgress(clientMsgID, uploadTask)
+        updateSingleMessage(IMLocalRepository.findMsgByClientMsgId(clientMsgID)) { m ->
             m.uploadTask = uploadTask
         }
     }
@@ -1132,6 +1098,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
     private fun bigFileUpload(
         message: MessageEntity, thumbBitmap: Bitmap
     ) {
+        ossApiRepository ?: return
         try {
             val tempUploadInfo = tempUploadInfos[message.clientMsgID]
             val thumbWidth = thumbBitmap.width
@@ -1171,7 +1138,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
                         m.msgBody = it.sendBody.msgBody
                     }
                     scrollToBottom()
-                    val initRep = UploadRepository.initMultiPartUpload(
+                    val initRep = ossApiRepository!!.initMultiPartUpload(
                         body = InitMultiPartUploadBody(
                             size = it.mediaMessage.fileSize,
                             name = it.mediaMessage.fileName,
@@ -1227,35 +1194,37 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
                             )
 
                             val bodyFromBuffer =
-                                ProgressRequestBody(delegate = buffer.array().toRequestBody(
-                                    contentType = "application/octet-stream".toMediaTypeOrNull(),
-                                    byteCount = buffer.array().size
-                                ), listener = { bytesWritten, contentLength ->
-                                    val totalProgress =
-                                        (1.0 * (deltaSize + bytesWritten)) / it.mediaMessage.fileSize
-                                    val currentBlockProgress = (1.0 * bytesWritten) / contentLength
+                                ProgressRequestBody(
+                                    delegate = buffer.array().toRequestBody(
+                                        contentType = "application/octet-stream".toMediaTypeOrNull(),
+                                        byteCount = buffer.array().size
+                                    ), listener = { bytesWritten, contentLength ->
+                                        val totalProgress =
+                                            (1.0 * (deltaSize + bytesWritten)) / it.mediaMessage.fileSize
+                                        val currentBlockProgress =
+                                            (1.0 * bytesWritten) / contentLength
 
-                                    val emitProgress = progressList[message.clientMsgID]
-                                    if (emitProgress != null) {
-                                        viewModelScope.launch(Dispatchers.Main) {
-                                            emitProgress.value = totalProgress.toFloat()
-                                        }
+                                        val emitProgress = progressList[message.clientMsgID]
+                                        if (emitProgress != null) {
+                                            viewModelScope.launch(Dispatchers.Main) {
+                                                emitProgress.value = totalProgress.toFloat()
+                                            }
 
-                                        uploadTask.reqBodyJson =
-                                            Gson().toJson(mergeMultiUploadReqQueue[message.clientMsgID])
-                                        uploadTask.progress = emitProgress.value
-                                        viewModelScope.launch(Dispatchers.IO) {
-                                            findMediaMsgAndUpdateProgress(
-                                                message.clientMsgID, uploadTask
-                                            )
-                                        }
+                                            uploadTask.reqBodyJson =
+                                                Gson().toJson(mergeMultiUploadReqQueue[message.clientMsgID])
+                                            uploadTask.progress = emitProgress.value
+                                            viewModelScope.launch(Dispatchers.IO) {
+                                                IMLocalRepository.findMediaMsgAndUpdateProgress(
+                                                    message.clientMsgID, uploadTask
+                                                )
+                                            }
 
-                                        if (emitProgress.value == 1.0f) {
-                                            uploadTask.progress = 1.0f
+                                            if (emitProgress.value == 1.0f) {
+                                                uploadTask.progress = 1.0f
+                                            }
                                         }
-                                    }
-                                })
-                            UploadRepository.uploadBinary(
+                                    })
+                            ossApiRepository!!.uploadBinary(
                                 url = initRep.data.node[buffers.indexOf(buffer)].url, bodyFromBuffer
                             )
 
@@ -1272,7 +1241,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
                     Log.d(UPLOAD, "iter --->> ${mergeMultiUploadReqQueue[message.clientMsgID]}")
                     val mergeUpload =
                         mergeMultiUploadReqQueue[message.clientMsgID]?.let { reqBody ->
-                            UploadRepository.completeMultiPartUpload(
+                            ossApiRepository!!.completeMultiPartUpload(
                                 body = reqBody, token = lbeToken
                             )
                         }
@@ -1360,6 +1329,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
                         }
                     }
                 }
+
                 message.msgType == 2 -> {
                     try {
                         val options = BitmapFactory.Options().apply {
@@ -1413,6 +1383,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         if (!networkAvailable()) {
             return
         }
+        ossApiRepository ?: return
         val job = viewModelScope.launch(Dispatchers.IO + coroutineExceptionHandler) {
             IMLocalRepository.findMediaMsgSetUploadContinue(message.clientMsgID)
             updateSingleMessage(source = message) { m ->
@@ -1479,39 +1450,40 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
                     )
 
                     val bodyFromBuffer =
-                        ProgressRequestBody(delegate = buffer.array().toRequestBody(
-                            contentType = "application/octet-stream".toMediaTypeOrNull(),
-                            byteCount = buffer.array().size
-                        ), listener = { bytesWritten, contentLength ->
-                            val totalProgress =
-                                ((1.0 * (deltaSize + bytesWritten)) / message.localFile?.size!!)
-                            val currentTrunkProgress = (1.0 * bytesWritten) / contentLength
+                        ProgressRequestBody(
+                            delegate = buffer.array().toRequestBody(
+                                contentType = "application/octet-stream".toMediaTypeOrNull(),
+                                byteCount = buffer.array().size
+                            ), listener = { bytesWritten, contentLength ->
+                                val totalProgress =
+                                    ((1.0 * (deltaSize + bytesWritten)) / message.localFile?.size!!)
+                                val currentTrunkProgress = (1.0 * bytesWritten) / contentLength
 
-                            val emitProgress = progressList[message.clientMsgID]
-                            if (emitProgress != null) {
-                                viewModelScope.launch(Dispatchers.Main) {
-                                    if (totalProgress.toFloat() >= emitProgress.value) {
-                                        emitProgress.value = totalProgress.toFloat()
+                                val emitProgress = progressList[message.clientMsgID]
+                                if (emitProgress != null) {
+                                    viewModelScope.launch(Dispatchers.Main) {
+                                        if (totalProgress.toFloat() >= emitProgress.value) {
+                                            emitProgress.value = totalProgress.toFloat()
+                                        }
+                                    }
+
+                                    newTask.progress = emitProgress.value
+                                    newTask.reqBodyJson =
+                                        Gson().toJson(mergeMultiUploadReqQueue[message.clientMsgID])
+                                    viewModelScope.launch(Dispatchers.IO) {
+                                        IMLocalRepository.findMediaMsgAndUpdateProgress(
+                                            message.clientMsgID, newTask
+                                        )
+                                    }
+                                    if (emitProgress.value == 1.0f) {
+                                        newTask.progress = 1.0f
                                     }
                                 }
-
-                                newTask.progress = emitProgress.value
-                                newTask.reqBodyJson =
-                                    Gson().toJson(mergeMultiUploadReqQueue[message.clientMsgID])
-                                viewModelScope.launch(Dispatchers.IO) {
-                                    findMediaMsgAndUpdateProgress(
-                                        message.clientMsgID, newTask
-                                    )
-                                }
-                                if (emitProgress.value == 1.0f) {
-                                    newTask.progress = 1.0f
-                                }
-                            }
-                        })
+                            })
 
                     val bIndex = buffers.indexOf(buffer)
                     Log.d(CONTINUE_UPLOAD, "分块上传 index --->>> $bIndex")
-                    UploadRepository.uploadBinary(
+                    ossApiRepository!!.uploadBinary(
                         url = initRep.data.node[bIndex].url, bodyFromBuffer
                     )
 
@@ -1530,7 +1502,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
             val reqBody = mergeMultiUploadReqQueue[message.clientMsgID]
             Log.d(UPLOAD, "merge reqBody --->> $reqBody")
             if (reqBody != null) {
-                val mergeUpload = UploadRepository.completeMultiPartUpload(
+                val mergeUpload = ossApiRepository!!.completeMultiPartUpload(
                     body = reqBody, token = lbeToken
                 )
 
@@ -1575,7 +1547,10 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
                 Log.d(CONTINUE_UPLOAD, "暂停截取 uploadTask ---->>> $uploadTask")
                 uploadTask?.progress = progress.value
                 uploadTask?.reqBodyJson = Gson().toJson(mergeReq)
-                findMediaMsgPendingAndUpdateProgress(clientMsgId, uploadTask = uploadTask)
+                IMLocalRepository.findMediaMsgPendingAndUpdateProgress(
+                    clientMsgId,
+                    uploadTask = uploadTask
+                )
                 val msg = IMLocalRepository.findMsgByClientMsgId(clientMsgId)
                 updateSingleMessage(source = msg) { m ->
                     m.uploadTask = uploadTask
@@ -1612,7 +1587,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         val bao = ByteArrayOutputStream()
         bitmap.compress(Bitmap.CompressFormat.JPEG, 75, bao)
         val buffer = bao.toByteArray()
-        val thumbnailResp = UploadRepository.singleUpload(
+        val thumbnailResp = ossApiRepository!!.singleUpload(
             file = MultipartBody.Part.createFormData(
                 "file", "lbe_${uuidGen()}_${timeStampGen()}.jpg", buffer.toRequestBody()
             ), signType = 2, token = lbeToken

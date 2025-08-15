@@ -13,4 +13,5 @@ data class InitArgs(
     val source: String,
     val extraInfo: MutableMap<String, Any>,
     var groupID: String,
+    var domain: String,
 )

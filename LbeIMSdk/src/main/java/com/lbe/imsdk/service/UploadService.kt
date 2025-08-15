@@ -7,7 +7,9 @@ import com.lbe.imsdk.model.resp.InitMultiPartUploadRep
 import com.lbe.imsdk.model.resp.SingleUploadRep
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
+import okhttp3.ResponseBody
 import retrofit2.http.Body
+import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.Multipart
 import retrofit2.http.POST
@@ -22,6 +24,11 @@ const val INIT_MULTI_PART_UPLOAD = "api/multi/initiate-multipart_upload"
 const val COMPLETE_MULTI_PART_UPLOAD = "api/multi/complete-multipart-upload"
 
 interface UploadService {
+
+    @GET
+    suspend fun downloadImage(
+        @Url url: String
+    ): ResponseBody
 
     @POST(SINGLE_UPLOAD)
     @Multipart

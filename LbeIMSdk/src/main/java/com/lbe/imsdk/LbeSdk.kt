@@ -18,7 +18,8 @@ object LbeSdk {
         device: String,
         source: String,
         headerIcon: String,
-        groupID: String
+        groupID: String,
+        domain: String,
     ) {
         val initArgs = InitArgs(
             lbeSign = lbeSign,
@@ -32,7 +33,8 @@ object LbeSdk {
             device = device,
             source = source,
             extraInfo = mutableMapOf(),
-            groupID = groupID
+            groupID = groupID,
+            domain = domain,
         )
         val intent = Intent(context, LbeChatActivity::class.java).putExtra(
             "initArgs", Gson().toJson(initArgs)

@@ -31,7 +31,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val context = LocalContext.current
             ChatAppTheme {
-                NickIdPrompt { nickId, nickName, lbeIdentity, lbeSign, phone, email, language, device, headerIcon, groupID ->
+                NickIdPrompt { nickId, nickName, lbeIdentity, lbeSign, phone, email, language, device, headerIcon, groupID ,domain->
                     LbeSdk.init(
                         context = context,
                         lbeSign = lbeSign,
@@ -44,7 +44,8 @@ class MainActivity : ComponentActivity() {
                         device = device,
                         headerIcon = headerIcon,
                         groupID = groupID,
-                        source = ""
+                        source = "",
+                        domain = domain
                     )
                     finish()
                 }
@@ -54,7 +55,21 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun NickIdPrompt(onStart: (nickId: String, nickName: String, lbeIdentity: String, lbeSign: String, phone: String, email: String, language: String, device: String, headerIcon: String, groupID: String) -> Unit) {
+fun NickIdPrompt(
+    onStart: (
+        nickId: String,
+        nickName: String,
+        lbeIdentity: String,
+        lbeSign: String,
+        phone: String,
+        email: String,
+        language: String,
+        device: String,
+        headerIcon: String,
+        groupID: String,
+        domain: String
+    ) -> Unit
+) {
     // HermitK1
     var nickId by remember { mutableStateOf("android001") }
     var nickName by remember { mutableStateOf("android001") }
@@ -186,7 +201,8 @@ fun NickIdPrompt(onStart: (nickId: String, nickName: String, lbeIdentity: String
                         language,
                         device,
                         headerIcon,
-                        groupID
+                        groupID,
+                        ""
                     )
                 }) {
                     Text(text = "Connect")

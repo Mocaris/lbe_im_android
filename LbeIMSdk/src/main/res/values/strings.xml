@@ -1,6 +1,4 @@
 <resources>
-    <string name="app_name">ChatApp</string>
-    
     <!-- General -->
     <string name="chat_session_status_13">Copied successfully</string>
     <string name="save_success">Saved successfully</string>

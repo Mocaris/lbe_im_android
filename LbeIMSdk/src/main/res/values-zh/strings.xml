@@ -1,6 +1,4 @@
 <resources>
-    <string name="app_name">ChatApp</string>
-    
     <!-- 通用 -->
     <string name="chat_session_status_13">复制成功</string>
     <string name="save_success">保存成功</string>

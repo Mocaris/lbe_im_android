@@ -82,7 +82,9 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         var remoteLastMsgType = -1
         var nickId: String = ""
         var nickName: String = ""
-        var userAvatar: String = ""
+
+        // url String / [IconUrl]
+        var userAvatar: Any? = null
         var lbeIdentity: String = ""
         var progressList: MutableMap<String, MutableStateFlow<Float>> = mutableMapOf()
         val tempUploadInfos: MutableMap<String, TempUploadInfo> = mutableMapOf()
@@ -122,7 +124,10 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
     private val _inputMsg = MutableLiveData("")
     val inputMsg: LiveData<String> = _inputMsg
 
-    private lateinit var okHttpClient: OkHttpClient
+    private val okHttpClient: OkHttpClient =
+        OkHttpClient.Builder().connectTimeout(5, TimeUnit.DAYS)
+            .retryOnConnectionFailure(true)
+            .build()
     private var chatService: ChatService? = null
     private var wsSubs: Disposable? = null
 
@@ -145,8 +150,10 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
 
     // base api Repository
     private lateinit var configApiRepository: LbeConfigApiRepository
+
     // im api Repository
     private var imApiRepository: LbeImApiRepository? = null
+
     // oss api Repository
     private var ossApiRepository: LbeOssApiRepository? = null
 
@@ -193,6 +200,18 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         }
         nickName = args.nickName
         userAvatar = args.headerIcon
+        if (args.headerIcon.isNotEmpty()) {
+            try {
+                val iconUrl = Gson().fromJson<IconUrl>(args.headerIcon, IconUrl::class.java)
+                userAvatar = if (iconUrl.url.isNotEmpty()) {
+                    iconUrl
+                } else {
+                    ""
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
         lbeIdentity = args.lbeIdentity
         initArgs = args
         configApiRepository = LbeConfigApiRepository(baseUrl = initArgs.domain.ifEmpty { BASE_URL })
@@ -209,12 +228,16 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
                 fetchConfig()
                 createSession()
                 viewModelScope.launch(Dispatchers.IO) {
-                    fetchSessionList()
-                    observerConnection()
-                    fetchTimeoutConfig()
-                    faq(faqReqBody = FaqReqBody(faqType = 0, id = ""))
-                    sdkInit = true
-                    schedulePingJob()
+                    try {
+                        fetchSessionList()
+                        observerConnection()
+                        fetchTimeoutConfig()
+                        faq(faqReqBody = FaqReqBody(faqType = 0, id = ""))
+                        sdkInit = true
+                        schedulePingJob()
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
                 }
             } catch (e: Exception) {
                 println("realInitSdk error: $e")
@@ -229,10 +252,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
 
     private suspend fun <T> safeApiCall(apiCall: suspend () -> T): Result<T> {
         return try {
-            val result = apiCall();
-            if (null == result) {
-                throw Exception("result is null")
-            }
+            val result = apiCall() ?: throw Exception("result is null");
             Result.success(result)
         } catch (e: HttpException) {
             println("SafeApiCall HTTP error: ${e.code()} - ${e.message()}")
@@ -619,31 +639,34 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
 
     @SuppressLint("CheckResult")
     private fun observerConnection() {
-        okHttpClient =
-            OkHttpClient.Builder().connectTimeout(5, TimeUnit.DAYS).retryOnConnectionFailure(true)
-                .build()
-
-        val scarletInstance = Scarlet.Builder().webSocketFactory(
-            okHttpClient.newWebSocketFactory(
-                DynamicHeaderUrlRequestFactory(
-                    url = wssHost, lbeToken = lbeToken, lbeSession = lbeSession,
+        try {
+            if (wssHost.isEmpty()) {
+                return
+            }
+            val scarletInstance = Scarlet.Builder().webSocketFactory(
+                okHttpClient.newWebSocketFactory(
+                    DynamicHeaderUrlRequestFactory(
+                        url = wssHost, lbeToken = lbeToken, lbeSession = lbeSession,
+                    )
                 )
+            ).addStreamAdapterFactory(RxJava2StreamAdapterFactory()).build()
+
+            chatService = scarletInstance.create<ChatService>()
+
+            Log.d(TAG, "Observing Connection")
+            updateConnectionStatus(ConnectionStatus.CONNECTING)
+
+            wsSubs = chatService?.observeConnection()?.subscribe(
+                { response ->
+                    onResponseReceived(response)
+                },
+                { error ->
+                    error.localizedMessage?.let { Log.e(TAG, "websocket 出错 ---->>> $it") }
+                },
             )
-        ).addStreamAdapterFactory(RxJava2StreamAdapterFactory()).build()
-
-        chatService = scarletInstance.create<ChatService>()
-
-        Log.d(TAG, "Observing Connection")
-        updateConnectionStatus(ConnectionStatus.CONNECTING)
-
-        wsSubs = chatService?.observeConnection()?.subscribe(
-            { response ->
-                onResponseReceived(response)
-            },
-            { error ->
-                error.localizedMessage?.let { Log.e(TAG, "websocket 出错 ---->>> $it") }
-            },
-        )
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     private fun onResponseReceived(response: WebSocket.Event) {

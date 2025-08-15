@@ -1123,16 +1123,28 @@ fun UserInput(
                 Spacer(Modifier.height(8.dp))
                 MsgTypeContent(message, viewModel, navController, true, imageLoader)
             }
-
-            if (ChatScreenViewModel.userAvatar.isNotEmpty()) {
-                AsyncImage(
-                    model = ChatScreenViewModel.userAvatar,
-                    contentDescription = "Yo",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clip(CircleShape),
-                )
+            val iconUrl = ChatScreenViewModel.userAvatar
+            if (null != iconUrl) {
+                if (iconUrl is IconUrl) {
+                    NormalDecryptedOrNotImageView(
+                        key = iconUrl.key,
+                        url = iconUrl.url,
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape),
+                        imageLoader,
+                        contentScale = ContentScale.Crop,
+                    )
+                } else {
+                    AsyncImage(
+                        model = ChatScreenViewModel.userAvatar,
+                        contentDescription = "Yo",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape),
+                    )
+                }
             } else {
                 Image(
                     painter = painterResource(id = R.drawable.default_user_avatar),

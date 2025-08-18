@@ -67,7 +67,7 @@ class LbeChatActivity : ComponentActivity() {
 
     private fun updateAppLanguage(language: String) {
         val locale = when (language.lowercase()) {
-            "zh", "zh_cn", "zh-cn" -> Locale.CHINESE
+            "zh", "zh_cn", "zh-cn","0" -> Locale.CHINESE
             else -> Locale.ENGLISH
         }
 

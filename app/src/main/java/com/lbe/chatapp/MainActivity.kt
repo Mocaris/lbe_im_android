@@ -70,6 +70,7 @@ fun NickIdPrompt(
         domain: String
     ) -> Unit
 ) {
+    val domain = remember { mutableStateOf("") }
     // HermitK1
     var nickId by remember { mutableStateOf("android001") }
     var nickName by remember { mutableStateOf("android001") }
@@ -116,6 +117,14 @@ fun NickIdPrompt(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
+            item {
+                OutlinedTextField(
+                    value = domain.value,
+                    onValueChange = { domain.value = it },
+                    label = { Text(text = "domain") },
+                    readOnly = false,
+                )
+            }
             item {
                 OutlinedTextField(
                     value = lbeSign,
@@ -202,7 +211,7 @@ fun NickIdPrompt(
                         device,
                         headerIcon,
                         groupID,
-                        ""
+                        domain.value
                     )
                 }) {
                     Text(text = "Connect")

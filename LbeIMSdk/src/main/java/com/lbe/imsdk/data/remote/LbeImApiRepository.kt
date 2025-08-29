@@ -12,11 +12,6 @@ class LbeImApiRepository(private val imBaseUrl:String) {
 //    private val lbeIMRepository = RetrofitInstance.imApiService
 
     val imApiService: LbeIMAPiService by lazy {
-        val loggingInterceptor = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
-        }
-        val okHttpClient = OkHttpClient.Builder().addInterceptor(loggingInterceptor).build()
-
         val retrofit = Retrofit.Builder().baseUrl(imBaseUrl).client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create()).build()
         retrofit.create(LbeIMAPiService::class.java)

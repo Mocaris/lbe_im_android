@@ -11,7 +11,9 @@ class LbeOssApiRepository(private val fileBaseUrl: String) {
 //    private val uploadService = RetrofitInstance.uploadService
 
     val apiService: UploadService by lazy {
-        val retrofit = Retrofit.Builder().baseUrl(fileBaseUrl)
+        val retrofit = Retrofit.Builder()
+            .client(okHttpClient)
+            .baseUrl(fileBaseUrl)
             .addConverterFactory(GsonConverterFactory.create()).build()
         retrofit.create(UploadService::class.java)
     }

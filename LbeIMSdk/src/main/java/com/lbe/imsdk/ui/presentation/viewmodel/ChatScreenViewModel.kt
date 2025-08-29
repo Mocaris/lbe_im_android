@@ -43,6 +43,7 @@ import com.tinder.scarlet.websocket.okhttp.*
 import io.reactivex.disposables.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.sync.*
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.asRequestBody
@@ -286,6 +287,9 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         if (!networkAvailable()) {
             return
         }
+        val language = initArgs.language.let {
+            if (it == "0" || it.contains("zh")) "zh" else "en"
+        }
         val result = safeApiCall {
             imApiRepository?.createSession(
                 lbeSign, lbeIdentity, SessionBody(
@@ -294,7 +298,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
                     nickName = nickName,
                     phone = initArgs.phone,
                     email = initArgs.email,
-                    language = initArgs.language,
+                    language = language,
                     device = initArgs.device,
                     source = initArgs.source,
                     headIcon = initArgs.headerIcon,
@@ -389,7 +393,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
             REALM,
             "checkNeedSyncRemote --->>> cache size: ${cacheMessages.size} |  remote lastSeq: $seq , remoteLastMsgType: $remoteLastMsgType"
         )
-        if (cacheMessages.size < seq) {
+        if (cacheMessages.size < seq || seq == 0) {
             fetchHistoryAndSync(currentSession)
         }
     }
@@ -569,7 +573,9 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
                 lbeIdentity = lbeIdentity,
                 body = HistoryBody(
                     sessionId = currentSession?.sessionId ?: "", seqCondition = SeqCondition(
-                        startSeq = 0, endSeq = currentSession?.latestMsg?.msgSeq ?: 0
+                        startSeq = 0,
+                        endSeq = (currentSession?.latestMsg?.msgSeq
+                            ?: 0).let { if (it <= 0) 100 else it }
                     )
                 )
             )
@@ -861,6 +867,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
             },
             sendBody,
         )
+        clearInput()
     }
 
     private fun senMessageFromMedia(msgBody: MsgBody, preSend: () -> Unit) {

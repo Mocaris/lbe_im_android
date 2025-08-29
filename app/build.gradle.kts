@@ -9,7 +9,7 @@ android {
 
     defaultConfig {
         applicationId = "com.lbe.chatapp"
-        minSdk = 28
+        minSdk = 21
         versionCode = 21
         versionName = "0.2.1"
 

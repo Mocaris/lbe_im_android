@@ -43,6 +43,7 @@ import com.tinder.scarlet.websocket.okhttp.*
 import io.reactivex.disposables.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.sync.*
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.asRequestBody
@@ -861,6 +862,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
             },
             sendBody,
         )
+        clearInput()
     }
 
     private fun senMessageFromMedia(msgBody: MsgBody, preSend: () -> Unit) {

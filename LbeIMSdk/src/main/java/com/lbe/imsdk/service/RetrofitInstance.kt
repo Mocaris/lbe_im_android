@@ -33,3 +33,7 @@ const val BASE_URL = "https://mob.imsz.online/"
 //
 //
 //}
+val loggingInterceptor = HttpLoggingInterceptor().apply {
+    level = HttpLoggingInterceptor.Level.BODY
+}
+val okHttpClient = OkHttpClient.Builder().addInterceptor(loggingInterceptor).build()

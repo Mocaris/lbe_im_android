@@ -10,7 +10,9 @@ class LbeConfigApiRepository(private val baseUrl: String = BASE_URL) {
 
     val apiService: ApiService by lazy {
         val retrofit =
-            Retrofit.Builder().baseUrl(baseUrl).addConverterFactory(GsonConverterFactory.create())
+            Retrofit.Builder()
+                .client(okHttpClient)
+                .baseUrl(baseUrl).addConverterFactory(GsonConverterFactory.create())
                 .build()
         retrofit.create(ApiService::class.java)
     }

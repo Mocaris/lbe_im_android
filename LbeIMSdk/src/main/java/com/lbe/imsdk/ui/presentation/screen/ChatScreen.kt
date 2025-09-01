@@ -1106,10 +1106,8 @@ fun UserInput(
             ) {
                 Text(
                     text = ChatScreenViewModel.nickName.ifEmpty {
-                        if (ChatScreenViewModel.isGuest) stringResource(
-                            R.string.chat_session_status_16, ChatScreenViewModel.nickId
-                        ) else stringResource(
-                            R.string.chat_session_status_15,
+                        stringResource(
+                            if(ChatScreenViewModel.isGuest)  R.string.chat_session_status_15 else  R.string.chat_session_status_16,
                             ChatScreenViewModel.nickId
                         )
                     },

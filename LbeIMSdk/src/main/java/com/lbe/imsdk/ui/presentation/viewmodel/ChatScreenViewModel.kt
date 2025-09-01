@@ -133,7 +133,6 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         val tempUploadInfos: MutableMap<String, TempUploadInfo> = mutableMapOf()
         var sdkInit: Boolean = false
         var endSession: Boolean = false
-        var isAnonymous: Boolean = false
     }
 
     private val jobs: MutableMap<String, Job> = mutableMapOf()
@@ -234,11 +233,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
 
     fun initSdk(args: InitArgs) {
         lbeSign = args.lbeSign
-        nickId = args.nickId.ifEmpty {
-            sharedPreferences.edit().putBoolean("needSaveNickId", true).apply()
-            isAnonymous = true
-            sharedPreferences.getString("anonymousNickId", "").toString()
-        }
+        nickId = args.nickId
         nickName = args.nickName
         userAvatar = args.headerIcon
         if (args.headerIcon.isNotEmpty()) {
@@ -354,13 +349,6 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
             lbeToken = session!!.data.token
             lbeSession = session.data.sessionId
             uid = session.data.uid
-            if (sharedPreferences.getBoolean("needSaveNickId", false)) {
-                nickId = session.data.nickId
-                sharedPreferences.edit {
-                    putString("anonymousNickId", session.data.nickId)
-                    putBoolean("needSaveNickId", false)
-                }
-            }
             endSession = false
         }.onFailure { error ->
             Toast

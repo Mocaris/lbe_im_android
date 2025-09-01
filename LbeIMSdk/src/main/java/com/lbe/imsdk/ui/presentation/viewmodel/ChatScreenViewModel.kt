@@ -174,8 +174,6 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
     private var chatService: ChatService? = null
     private var wsSubs: Disposable? = null
 
-    var lazyListState: LazyListState? = null
-
     private val networkMonitor = NetworkMonitor(application)
 
     val isConnected = networkMonitor.isConnected

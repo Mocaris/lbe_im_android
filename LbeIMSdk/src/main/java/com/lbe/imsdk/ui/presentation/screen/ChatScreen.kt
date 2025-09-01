@@ -200,7 +200,6 @@ fun ChatScreen(
     val coroutineScope = rememberCoroutineScope()
 
     val lazyListState = rememberLazyListState()
-    viewModel.lazyListState = lazyListState
 
     var pickFileEvent by remember { mutableStateOf("") }
 
@@ -272,7 +271,7 @@ fun ChatScreen(
         })
     }
 
-    LaunchedEffect(lazyListState) {
+    LaunchedEffect(viewModel) {
 //        snapshotFlow { lazyListState.layoutInfo }.collect { layoutInfo ->
 //            val totalItems = layoutInfo.totalItemsCount
 //            val lastVisibleItemIndex = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1

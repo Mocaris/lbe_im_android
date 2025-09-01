@@ -1106,7 +1106,7 @@ fun UserInput(
             ) {
                 Text(
                     text = ChatScreenViewModel.nickName.ifEmpty {
-                        if (!ChatScreenViewModel.isAnonymous) stringResource(
+                        if (ChatScreenViewModel.isGuest) stringResource(
                             R.string.chat_session_status_16, ChatScreenViewModel.nickId
                         ) else stringResource(
                             R.string.chat_session_status_15,

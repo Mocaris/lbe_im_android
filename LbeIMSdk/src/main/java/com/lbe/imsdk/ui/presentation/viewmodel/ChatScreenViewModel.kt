@@ -123,6 +123,9 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         var showPageSize = 20
         var currentPage = 1
         var remoteLastMsgType = -1
+
+        //游客
+        var isGuest = false
         var nickId: String = ""
         var nickName: String = ""
 
@@ -233,7 +236,10 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
 
     fun initSdk(args: InitArgs) {
         lbeSign = args.lbeSign
-        nickId = args.nickId
+        isGuest = args.nickId.isEmpty()
+        nickId = args.nickId.ifEmpty {
+            sharedPreferences.getString("guest_nick_id", "") ?: ""
+        }
         nickName = args.nickName
         userAvatar = args.headerIcon
         if (args.headerIcon.isNotEmpty()) {
@@ -340,7 +346,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
                     headIcon = initArgs.headerIcon,
                     groupID = initArgs.groupID,
                     uid = "",
-                    extraInfo = "",
+                    extraInfo = Gson().toJson(initArgs.extraInfo),
                 )
             )
         }
@@ -349,6 +355,12 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
             lbeToken = session!!.data.token
             lbeSession = session.data.sessionId
             uid = session.data.uid
+            if (nickId.isEmpty()) {
+                nickId = session.data.nickId
+                sharedPreferences.edit {
+                    putString("guest_nick_id", nickId)
+                }
+            }
             endSession = false
         }.onFailure { error ->
             Toast

@@ -10,7 +10,6 @@ data class SessionListRep(
 )
 
 data class SLData(
-    val total: Long,
     val sessionList: List<SessionEntry>,
 )
 

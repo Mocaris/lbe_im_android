@@ -304,13 +304,13 @@ fun MsgTypeContent(
                             items(faq.knowledgeBaseList) { item ->
                                 Column(horizontalAlignment = Alignment.CenterHorizontally,
                                     modifier = Modifier.clickable {
-                                        println("history not available 8 --->> message.sessionId: ${message.sessionId}, current session: ${ChatScreenViewModel.sessionList[0].sessionId}")
-                                        if (ChatScreenViewModel.sessionList.isNotEmpty() && message.sessionId != ChatScreenViewModel.sessionList[0].sessionId) {
-                                            Toast.makeText(
-                                                context, historyNotAvailable, Toast.LENGTH_SHORT
-                                            ).show()
-                                            return@clickable
-                                        }
+//                                        println("history not available 8 --->> message.sessionId: ${message.sessionId}, current session: ${ChatScreenViewModel.sessionList[0].sessionId}")
+//                                        if (ChatScreenViewModel.sessionList.isNotEmpty() && message.sessionId != ChatScreenViewModel.sessionList[0].sessionId) {
+//                                            Toast.makeText(
+//                                                context, historyNotAvailable, Toast.LENGTH_SHORT
+//                                            ).show()
+//                                            return@clickable
+//                                        }
                                         if (kickOffLine) {
                                             Toast.makeText(
                                                 context,
@@ -415,15 +415,15 @@ fun MsgTypeContent(
                             ), modifier = Modifier
                                 .padding(top = 8.dp)
                                 .clickable {
-                                    println("history not available 9 --->> message.sessionId: ${message.sessionId}, current session: ${ChatScreenViewModel.sessionList[0].sessionId}")
-                                    if (ChatScreenViewModel.sessionList.isNotEmpty() && message.sessionId != ChatScreenViewModel.sessionList[0].sessionId) {
-                                        Toast
-                                            .makeText(
-                                                context, historyNotAvailable, Toast.LENGTH_SHORT
-                                            )
-                                            .show()
-                                        return@clickable
-                                    }
+//                                    println("history not available 9 --->> message.sessionId: ${message.sessionId}, current session: ${ChatScreenViewModel.sessionList[0].sessionId}")
+//                                    if (ChatScreenViewModel.sessionList.isNotEmpty() && message.sessionId != ChatScreenViewModel.sessionList[0].sessionId) {
+//                                        Toast
+//                                            .makeText(
+//                                                context, historyNotAvailable, Toast.LENGTH_SHORT
+//                                            )
+//                                            .show()
+//                                        return@clickable
+//                                    }
                                     if (kickOffLine) {
                                         Toast
                                             .makeText(

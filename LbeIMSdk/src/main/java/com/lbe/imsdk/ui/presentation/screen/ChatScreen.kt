@@ -241,7 +241,6 @@ fun ChatScreen(
     val screenHeightPx =
         with(LocalDensity.current) { (configuration.screenHeightDp.dp - 155.dp).toPx() }
     var showToBottomButton by remember { mutableStateOf(false) }
-    var scrollOffset by remember { mutableFloatStateOf(0f) }
     val toBottomEvent by viewModel.toBottom.collectAsState("")
     val previousToBottomEvent = rememberSaveable { mutableStateOf(toBottomEvent) }
     val recivedEvent by viewModel.recived.collectAsState("")
@@ -252,6 +251,8 @@ fun ChatScreen(
 
     val faqNotExistEvent by viewModel.faqNotExistEvent.collectAsState("")
     val previousFaqNotExistEvent = rememberSaveable { mutableStateOf(faqNotExistEvent) }
+
+    val isRefreshing = remember { mutableStateOf(false) }
 
     LaunchedEffect(lifecycleOwner) {
         lifecycleOwner.lifecycle.addObserver(object : LifecycleEventObserver {
@@ -272,13 +273,19 @@ fun ChatScreen(
     }
 
     LaunchedEffect(lazyListState) {
-        snapshotFlow { lazyListState.layoutInfo }.collect { layoutInfo ->
-            val totalItems = layoutInfo.totalItemsCount
-            val lastVisibleItemIndex = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
-            if (totalItems > 0 && lastVisibleItemIndex == totalItems - 1) {
-                scrollOffset = 0f
+//        snapshotFlow { lazyListState.layoutInfo }.collect { layoutInfo ->
+//            val totalItems = layoutInfo.totalItemsCount
+//            val lastVisibleItemIndex = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
+//            if (totalItems > 0 && lastVisibleItemIndex == totalItems - 1) {
+//            }
+//        }
+        snapshotFlow { lazyListState.canScrollForward }.collect { canScrollForward ->
+            if (canScrollForward) {
+                currentFocus.clearFocus()
             }
+            showToBottomButton = canScrollForward
         }
+
     }
 
     Scaffold(modifier = Modifier.fillMaxSize(), topBar = { Appbar(viewModel) }) { innerPadding ->
@@ -332,63 +339,55 @@ fun ChatScreen(
                 }
 
                 LightPullToRefreshList(modifier = Modifier.weight(1f),
-                    listState = lazyListState,
+                    isRefreshing = isRefreshing.value,
                     onRefresh = {
+                        isRefreshing.value = true
                         if (ChatScreenViewModel.currentPage > 1) {
                             ChatScreenViewModel.currentPage -= 1
                             viewModel.filterLocalMessages()
                         } else {
                             viewModel.loadHistory()
                         }
-                    },
-                    lazyColumn = {
-                        LazyColumn(
-                            modifier = Modifier
-                                .padding(start = 16.dp, end = 16.dp)
-                                .fillMaxSize()
-                                .onSizeChanged { size ->
-                                    println("消息列表 size --->> $size")
-                                },
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
-                            contentPadding = PaddingValues(top = 20.dp),
-                            state = lazyListState
-                        ) {
-                            itemsIndexed(
+                        delay(500)
+                        isRefreshing.value = false
+                    }) {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(start = 16.dp, end = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        contentPadding = PaddingValues(top = 20.dp),
+                        state = lazyListState
+                    ) {
+                        itemsIndexed(
+                            uiState.messages,
+                            key = { _, msg ->
+                                msg.clientMsgID
+                            },
+                        ) { index, message ->
+                            MessageItem(
                                 uiState.messages,
-                                key = { _, msg ->
-                                    msg.clientMsgID
-                                },
-                            ) { index, message ->
-                                MessageItem(
-                                    uiState.messages,
-                                    message = message,
-                                    if (message.senderUid == ChatScreenViewModel.uid) MessagePosition.RIGHT
-                                    else MessagePosition.LEFT,
-                                    viewModel,
-                                    navController,
-                                    imageLoader,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(bottom = 20.dp),
-                                )
-                                LaunchedEffect(uiState.messages) {
-                                    if (index <= uiState.messages.size - 1) {
-                                        val visitAbleMsg = uiState.messages[index]
-                                        if (!visitAbleMsg.readed && visitAbleMsg.senderUid != ChatScreenViewModel.uid) {
-                                            viewModel.markRead(message)
-                                        }
+                                message = message,
+                                if (message.senderUid == ChatScreenViewModel.uid) MessagePosition.RIGHT
+                                else MessagePosition.LEFT,
+                                viewModel,
+                                navController,
+                                imageLoader,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 20.dp),
+                            )
+                            LaunchedEffect(uiState.messages) {
+                                if (index <= uiState.messages.size - 1) {
+                                    val visitAbleMsg = uiState.messages[index]
+                                    if (!visitAbleMsg.readed && visitAbleMsg.senderUid != ChatScreenViewModel.uid) {
+                                        viewModel.markRead(message)
                                     }
                                 }
                             }
                         }
-                    },
-                    onScroll = { offset ->
-                        if (offset != 0f) {
-                            currentFocus.clearFocus()
-                        }
-                        scrollOffset = (scrollOffset + offset).coerceAtLeast(0f)
-                        showToBottomButton = scrollOffset > screenHeightPx
-                    })
+                    }
+                }
 
                 var isExpanded by remember { mutableStateOf(false) }
                 var lineCount by remember { mutableIntStateOf(1) }
@@ -721,7 +720,6 @@ fun ChatScreen(
                     viewModel.scrollToBottom()
                     viewModel.resetRecivCount()
                     showToBottomButton = false
-                    scrollOffset = 0f
                 }
             })
         }
@@ -730,7 +728,6 @@ fun ChatScreen(
             if (toBottomEvent.isNotEmpty() && toBottomEvent != previousToBottomEvent.value) {
                 coroutineScope.launch {
                     showToBottomButton = false
-                    scrollOffset = 0f
                     delay(59)
                     if (uiState.messages.isNotEmpty()) {
                         lazyListState.requestScrollToItem(uiState.messages.size - 1)
@@ -763,7 +760,6 @@ fun ChatScreen(
                             lazyListState.requestScrollToItem(uiState.messages.size - 1)
                         }
                         showToBottomButton = false
-                        scrollOffset = 0f
                     }
                     viewModel.resetRecivCount()
                 }
@@ -1113,7 +1109,10 @@ fun UserInput(
                     text = ChatScreenViewModel.nickName.ifEmpty {
                         if (!ChatScreenViewModel.isAnonymous) stringResource(
                             R.string.chat_session_status_16, ChatScreenViewModel.nickId
-                        ) else stringResource(R.string.chat_session_status_15, ChatScreenViewModel.nickId)
+                        ) else stringResource(
+                            R.string.chat_session_status_15,
+                            ChatScreenViewModel.nickId
+                        )
                     },
                     modifier = Modifier.align(if (messagePosition == MessagePosition.LEFT) Alignment.Start else Alignment.End),
                     style = TextStyle(

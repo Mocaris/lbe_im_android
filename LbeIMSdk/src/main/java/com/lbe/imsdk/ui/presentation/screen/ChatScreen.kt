@@ -200,7 +200,6 @@ fun ChatScreen(
     val coroutineScope = rememberCoroutineScope()
 
     val lazyListState = rememberLazyListState()
-    viewModel.lazyListState = lazyListState
 
     var pickFileEvent by remember { mutableStateOf("") }
 
@@ -272,7 +271,7 @@ fun ChatScreen(
         })
     }
 
-    LaunchedEffect(lazyListState) {
+    LaunchedEffect(viewModel) {
 //        snapshotFlow { lazyListState.layoutInfo }.collect { layoutInfo ->
 //            val totalItems = layoutInfo.totalItemsCount
 //            val lastVisibleItemIndex = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
@@ -354,10 +353,7 @@ fun ChatScreen(
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(start = 16.dp, end = 16.dp)
-                            .onSizeChanged { size ->
-                                println("消息列表 size --->> $size")
-                            },
+                            .padding(start = 16.dp, end = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                         contentPadding = PaddingValues(top = 20.dp),
                         state = lazyListState
@@ -1110,10 +1106,8 @@ fun UserInput(
             ) {
                 Text(
                     text = ChatScreenViewModel.nickName.ifEmpty {
-                        if (!ChatScreenViewModel.isAnonymous) stringResource(
-                            R.string.chat_session_status_16, ChatScreenViewModel.nickId
-                        ) else stringResource(
-                            R.string.chat_session_status_15,
+                        stringResource(
+                            if(ChatScreenViewModel.isGuest)  R.string.chat_session_status_15 else  R.string.chat_session_status_16,
                             ChatScreenViewModel.nickId
                         )
                     },

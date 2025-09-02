@@ -1,5 +1,6 @@
 package com.lbe.imsdk
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import com.google.gson.Gson
@@ -39,7 +40,9 @@ object LbeSdk {
         val intent = Intent(context, LbeChatActivity::class.java).putExtra(
             "initArgs", Gson().toJson(initArgs)
         )
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        if (context !is Activity) {
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
         context.startActivity(intent)
     }
 }

@@ -1,57 +1,102 @@
 package com.lbe.imsdk.ui.presentation.viewmodel
 
 import NetworkMonitor
-import android.annotation.*
-import android.app.*
-import android.content.*
-import android.graphics.*
-import android.media.*
-import android.net.*
-import android.os.*
-import android.util.*
-import androidx.compose.foundation.lazy.*
-import androidx.compose.runtime.*
+import android.annotation.SuppressLint
+import android.app.Application
+import android.content.Context
+import android.content.SharedPreferences
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.media.MediaMetadataRetriever
+import android.net.Uri
+import android.os.Build
+import android.util.Log
+import android.widget.Toast
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.State
-import androidx.core.content.*
-import androidx.core.net.*
-import androidx.lifecycle.*
-import com.google.gson.*
-import com.lbe.imsdk.data.local.*
-import com.lbe.imsdk.data.remote.*
-import com.lbe.imsdk.model.*
-import com.lbe.imsdk.model.proto.*
-import com.lbe.imsdk.model.req.*
-import com.lbe.imsdk.model.resp.*
-import com.lbe.imsdk.service.*
-import com.lbe.imsdk.ui.presentation.components.*
+import androidx.core.content.edit
+import androidx.core.net.toFile
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.viewModelScope
+import com.google.gson.Gson
+import com.lbe.imsdk.data.local.IMLocalRepository
+import com.lbe.imsdk.data.remote.LbeConfigApiRepository
+import com.lbe.imsdk.data.remote.LbeImApiRepository
+import com.lbe.imsdk.data.remote.LbeOssApiRepository
+import com.lbe.imsdk.model.InitArgs
+import com.lbe.imsdk.model.LocalMediaFile
+import com.lbe.imsdk.model.MediaMessage
+import com.lbe.imsdk.model.MessageEntity
+import com.lbe.imsdk.model.TempUploadInfo
+import com.lbe.imsdk.model.UploadStatus
+import com.lbe.imsdk.model.UploadTask
+import com.lbe.imsdk.model.proto.IMMsg
+import com.lbe.imsdk.model.req.CompleteMultiPartUploadReq
+import com.lbe.imsdk.model.req.ConfigBody
+import com.lbe.imsdk.model.req.FaqReqBody
+import com.lbe.imsdk.model.req.HistoryBody
+import com.lbe.imsdk.model.req.InitMultiPartUploadBody
+import com.lbe.imsdk.model.req.MarkReadReqBody
+import com.lbe.imsdk.model.req.MsgBody
+import com.lbe.imsdk.model.req.Part
+import com.lbe.imsdk.model.req.SeqCondition
+import com.lbe.imsdk.model.req.SessionBody
+import com.lbe.imsdk.model.req.SessionListReq
+import com.lbe.imsdk.model.resp.IconUrl
+import com.lbe.imsdk.model.resp.InitMultiPartUploadRep
+import com.lbe.imsdk.model.resp.MediaSource
+import com.lbe.imsdk.model.resp.Resource
+import com.lbe.imsdk.model.resp.SingleUploadRep
+import com.lbe.imsdk.model.resp.Thumbnail
+import com.lbe.imsdk.service.BASE_URL
+import com.lbe.imsdk.service.ChatService
+import com.lbe.imsdk.service.DynamicHeaderUrlRequestFactory
+import com.lbe.imsdk.ui.presentation.components.ProgressRequestBody
 import com.lbe.imsdk.ui.presentation.components.ProgressRequestBody.Companion.toRequestBody
-import com.lbe.imsdk.ui.presentation.screen.*
-import com.lbe.imsdk.utils.*
+import com.lbe.imsdk.ui.presentation.screen.ChatScreenUiState
 import com.lbe.imsdk.utils.Converts.entityToMediaSendBody
 import com.lbe.imsdk.utils.Converts.entityToSendBody
 import com.lbe.imsdk.utils.Converts.protoToEntity
 import com.lbe.imsdk.utils.Converts.protoTypeConvert
 import com.lbe.imsdk.utils.Converts.sendBodyToEntity
+import com.lbe.imsdk.utils.FileLogger
 import com.lbe.imsdk.utils.TimeUtils.timeStampGen
 import com.lbe.imsdk.utils.UUIDUtils.uuidGen
-import com.tinder.scarlet.*
+import com.lbe.imsdk.utils.UploadBigFileUtils
+import com.lbe.imsdk.R
 import com.tinder.scarlet.Message
+import com.tinder.scarlet.Scarlet
 import com.tinder.scarlet.WebSocket
-import com.tinder.scarlet.WebSocket.Event.*
-import com.tinder.scarlet.streamadapter.rxjava2.*
-import com.tinder.scarlet.websocket.okhttp.*
-import io.reactivex.disposables.*
-import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.sync.*
-import okhttp3.*
+import com.tinder.scarlet.WebSocket.Event.OnConnectionClosed
+import com.tinder.scarlet.WebSocket.Event.OnConnectionClosing
+import com.tinder.scarlet.WebSocket.Event.OnConnectionFailed
+import com.tinder.scarlet.WebSocket.Event.OnConnectionOpened
+import com.tinder.scarlet.WebSocket.Event.OnMessageReceived
+import com.tinder.scarlet.streamadapter.rxjava2.RxJava2StreamAdapterFactory
+import com.tinder.scarlet.websocket.okhttp.newWebSocketFactory
+import io.reactivex.disposables.Disposable
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.OkHttpClient
 import okhttp3.RequestBody.Companion.asRequestBody
-import retrofit2.*
-import java.io.*
-import java.security.*
-import java.util.*
-import java.util.concurrent.*
+import retrofit2.HttpException
+import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.IOException
+import java.security.MessageDigest
+import java.util.Timer
+import java.util.TimerTask
+import java.util.concurrent.TimeUnit
 import kotlin.collections.*
 
 enum class ConnectionStatus {
@@ -74,13 +119,13 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         var lbeToken = ""
         var lbeSession = ""
         var seq: Int = 0
-        var sessionList: MutableList<SessionEntry> = mutableListOf()
-        var currentSession: SessionEntry? = null
-        var currentSessionIndex = 0
         var currentSessionTotalPages = 1
         var showPageSize = 20
         var currentPage = 1
         var remoteLastMsgType = -1
+
+        //游客
+        var isGuest = false
         var nickId: String = ""
         var nickName: String = ""
 
@@ -91,7 +136,6 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         val tempUploadInfos: MutableMap<String, TempUploadInfo> = mutableMapOf()
         var sdkInit: Boolean = false
         var endSession: Boolean = false
-        var isAnonymous: Boolean = false
     }
 
     private val jobs: MutableMap<String, Job> = mutableMapOf()
@@ -131,8 +175,6 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
             .build()
     private var chatService: ChatService? = null
     private var wsSubs: Disposable? = null
-
-    var lazyListState: LazyListState? = null
 
     private val networkMonitor = NetworkMonitor(application)
 
@@ -182,22 +224,21 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
-    private fun testOfflineTakeByCache() {
-        currentSession = SessionEntry(sessionId = "cn-43ro83fqqzm2", latestMsg = null)
-        lbeSession = "cn-43ro83fqqzm2"
-        syncPageInfo(currentSession)
-        viewModelScope.launch(Dispatchers.IO) {
-            filterLocalMessages()
-            scrollToBottom()
-        }
-    }
+//    private fun testOfflineTakeByCache() {
+//        currentSession = SessionEntry(sessionId = "cn-43ro83fqqzm2", latestMsg = null)
+//        lbeSession = "cn-43ro83fqqzm2"
+//        syncPageInfo(currentSession)
+//        viewModelScope.launch(Dispatchers.IO) {
+//            filterLocalMessages()
+//            scrollToBottom()
+//        }
+//    }
 
     fun initSdk(args: InitArgs) {
         lbeSign = args.lbeSign
+        isGuest = args.nickId.isEmpty()
         nickId = args.nickId.ifEmpty {
-            sharedPreferences.edit().putBoolean("needSaveNickId", true).apply()
-            isAnonymous = true
-            sharedPreferences.getString("anonymousNickId", "").toString()
+            sharedPreferences.getString("guest_nick_id", "") ?: ""
         }
         nickName = args.nickName
         userAvatar = args.headerIcon
@@ -228,18 +269,12 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
                 }
                 fetchConfig()
                 createSession()
-                viewModelScope.launch(Dispatchers.IO) {
-                    try {
-                        fetchSessionList()
-                        observerConnection()
-                        fetchTimeoutConfig()
-                        faq(faqReqBody = FaqReqBody(faqType = 0, id = ""))
-                        sdkInit = true
-                        schedulePingJob()
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
-                }
+                fetchSessionList()
+                observerConnection()
+                fetchTimeoutConfig()
+                faq(faqReqBody = FaqReqBody(faqType = 0, id = ""))
+                sdkInit = true
+                schedulePingJob()
             } catch (e: Exception) {
                 println("realInitSdk error: $e")
             }
@@ -279,6 +314,13 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
             imApiRepository = LbeImApiRepository(imBaseUrl)
             ossApiRepository = LbeOssApiRepository(ossBaseUrl)
         }.onFailure { err ->
+            Toast
+                .makeText(
+                    getApplication(),
+                    err.message,
+                    Toast.LENGTH_SHORT
+                )
+                .show()
             Log.d(RETROFIT, "获取配置异常: $err")
         }
     }
@@ -304,7 +346,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
                     headIcon = initArgs.headerIcon,
                     groupID = initArgs.groupID,
                     uid = "",
-                    extraInfo = "",
+                    extraInfo = Gson().toJson(initArgs.extraInfo),
                 )
             )
         }
@@ -313,15 +355,21 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
             lbeToken = session!!.data.token
             lbeSession = session.data.sessionId
             uid = session.data.uid
-            if (sharedPreferences.getBoolean("needSaveNickId", false)) {
+            if (nickId.isEmpty()) {
                 nickId = session.data.nickId
                 sharedPreferences.edit {
-                    putString("anonymousNickId", session.data.nickId)
-                    putBoolean("needSaveNickId", false)
+                    putString("guest_nick_id", nickId)
                 }
             }
             endSession = false
         }.onFailure { error ->
+            Toast
+                .makeText(
+                    getApplication(),
+                    error.message,
+                    Toast.LENGTH_SHORT
+                )
+                .show()
             Log.d(RETROFIT, "创建会话异常: $error")
         }
     }
@@ -333,20 +381,17 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         val result = safeApiCall {
             imApiRepository?.fetchSessionList(
                 lbeToken = lbeToken, lbeIdentity = lbeIdentity, body = SessionListReq(
-                    pagination = Pagination(
-                        pageNumber = 1, showNumber = 1000
-                    ), sessionType = 2
+                    sessionIDs = listOf(lbeSession)
                 )
             )
         }
         result.onSuccess { sessionListRep ->
             Log.d(RETROFIT, "会话列表: $sessionListRep")
-            sessionList.addAll(sessionListRep!!.data.sessionList)
-            currentSession = sessionList[currentSessionIndex]
+            val currentSession = sessionListRep?.data?.sessionList?.firstOrNull()
             seq = currentSession?.latestMsg?.msgSeq ?: 0
             remoteLastMsgType = currentSession?.latestMsg?.msgType ?: 0
             checkNeedSyncRemote()
-            syncPageInfo(currentSession)
+            syncPageInfo()
             filterLocalMessages()
             scrollToBottom()
             syncPendingJobs()
@@ -356,23 +401,18 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     fun loadHistory() {
-        if (currentSessionIndex >= sessionList.size - 1) {
-            return
-        }
-        currentSessionIndex += 1
-        currentSession = sessionList[currentSessionIndex]
         viewModelScope.launch(Dispatchers.IO) {
             checkNeedSyncRemote()
-            syncPageInfo(currentSession)
+            syncPageInfo()
             filterLocalMessages()
         }
     }
 
-    private fun syncPageInfo(currentSession: SessionEntry?) {
-        val cacheMessages = IMLocalRepository.filterMessages(currentSession?.sessionId ?: "")
+    private fun syncPageInfo() {
+        val cacheMessages = IMLocalRepository.filterMessages(lbeSession)
         Log.d(
             REALM,
-            "syncPageInfo cacheMessages size---->>> ${cacheMessages.size}, currentSession: ${currentSession?.sessionId}"
+            "syncPageInfo cacheMessages size---->>> ${cacheMessages.size}, currentSession: ${lbeSession}"
         )
         if (cacheMessages.isNotEmpty()) {
             currentSessionTotalPages = Math.max(cacheMessages.size / showPageSize, 1)
@@ -388,20 +428,18 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     suspend fun checkNeedSyncRemote() {
-        val cacheMessages = IMLocalRepository.filterMessages(currentSession?.sessionId ?: "")
+        val cacheMessages = IMLocalRepository.filterMessages(lbeSession)
         Log.d(
             REALM,
             "checkNeedSyncRemote --->>> cache size: ${cacheMessages.size} |  remote lastSeq: $seq , remoteLastMsgType: $remoteLastMsgType"
         )
         if (cacheMessages.size < seq || seq == 0) {
-            fetchHistoryAndSync(currentSession)
+            fetchHistoryAndSync()
         }
     }
 
     private fun afterSendUpdateList() {
-        currentSessionIndex = 0
-        currentSession = sessionList[currentSessionIndex]
-        val cacheMessages = IMLocalRepository.filterMessages(currentSession?.sessionId ?: "")
+        val cacheMessages = IMLocalRepository.filterMessages(lbeSession)
         currentSessionTotalPages = cacheMessages.size / showPageSize
         currentPage = currentSessionTotalPages
         val subList = pagination(cacheMessages)
@@ -418,16 +456,14 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
-    fun filterLocalMessages(
-        sid: String = currentSession?.sessionId ?: "",
-    ) {
+    fun filterLocalMessages() {
         Log.d(
             REALM,
-            "分页 ---->>> currentSessionIndex: $currentSessionIndex ,sessionId: $sid, currentSessionTotalPages: $currentSessionTotalPages, currentPage: $currentPage, seq: $seq"
+            "分页 ---->>> ,sessionId: $lbeSession, currentSessionTotalPages: $currentSessionTotalPages, currentPage: $currentPage, seq: $seq"
         )
         if ((currentSessionTotalPages != 0 && currentPage > currentSessionTotalPages) || currentPage < 1) return
 
-        val cacheMessages = IMLocalRepository.filterMessages(sid)
+        val cacheMessages = IMLocalRepository.filterMessages(lbeSession)
         val subList = pagination(cacheMessages)
 
         viewModelScope.launch(Dispatchers.Main) {
@@ -448,7 +484,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         Log.d(REALM, "分页总页数: $currentSessionTotalPages, currentPage: $currentPage, 取余: $yu")
 
         val subList = if (currentPage == 1 && yu != 0) {
-            val start = Math.max((currentPage - 1) * showPageSize, 0)
+            val start = ((currentPage - 1) * showPageSize).coerceAtLeast(0)
             val end = Math.min(currentPage * showPageSize + yu, source.size)
             Log.d(REALM, "最后一页 --->>> currentPage: $currentPage, start: $start, end: $end")
             source.subList(start, end)
@@ -561,7 +597,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
-    private suspend fun fetchHistoryAndSync(currentSession: SessionEntry?) {
+    private suspend fun fetchHistoryAndSync() {
         if (!networkAvailable()) {
             return
         }
@@ -572,10 +608,9 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
                 lbeToken = lbeToken,
                 lbeIdentity = lbeIdentity,
                 body = HistoryBody(
-                    sessionId = currentSession?.sessionId ?: "", seqCondition = SeqCondition(
+                    sessionId = lbeSession, seqCondition = SeqCondition(
                         startSeq = 0,
-                        endSeq = (currentSession?.latestMsg?.msgSeq
-                            ?: 0).let { if (it <= 0) 100 else it }
+                        endSeq = seq.let { if (it <= 0) 100 else it }
                     )
                 )
             )
@@ -610,7 +645,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
                     }
                 }
             }
-            syncPageInfo(currentSession)
+            syncPageInfo()
         }.onFailure { err ->
             Log.d(RETROFIT, "会话历史异常: $err")
         }
@@ -618,7 +653,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
 
     private fun syncPendingJobs() {
         val pendingCache =
-            IMLocalRepository.findAllPendingUploadMediaMessages(currentSession?.sessionId ?: "")
+            IMLocalRepository.findAllPendingUploadMediaMessages(lbeSession)
         Log.d(
             REALM,
             "PendingJobs --->>> ${pendingCache.map { cache -> "${cache.clientMsgID} || ${cache.uploadTask?.progress} " }}"
@@ -711,7 +746,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
                         println("接收转人工系统消息 --->> remoteLastMsgType: $remoteLastMsgType ,receivedSeq: $receivedSeq, seq: $seq")
                         if (remoteLastMsgType == 1 || remoteLastMsgType == 2 || remoteLastMsgType == 3 || remoteLastMsgType == 8 || remoteLastMsgType == 9 || remoteLastMsgType == 10 || remoteLastMsgType == 12) {
                             if (receivedSeq - seq > 2) {
-                                fetchHistoryAndSync(sessionList[0])
+                                fetchHistoryAndSync()
                             }
                             seq = receivedSeq
                             recivCount.value += 1
@@ -841,8 +876,6 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         }
 
         if (endSession) {
-            sessionList.clear()
-            currentSessionIndex = 0
             viewModelScope.launch(Dispatchers.IO + coroutineExceptionHandler) {
                 createSession()
                 fetchSessionList()
@@ -872,8 +905,6 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
 
     private fun senMessageFromMedia(msgBody: MsgBody, preSend: () -> Unit) {
         if (endSession) {
-            sessionList.clear()
-            currentSessionIndex = 0
             viewModelScope.launch(Dispatchers.IO + coroutineExceptionHandler) {
                 createSession()
                 fetchSessionList()
@@ -1095,9 +1126,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         }
         viewModelScope.launch(Dispatchers.IO + coroutineExceptionHandler) {
             IMLocalRepository.insertMessage(entity)
-            if (sessionList.isNotEmpty()) {
-                syncPageInfo(sessionList[0])
-            }
+            syncPageInfo()
             if (updateUI) {
                 afterSendUpdateList()
                 scrollToBottom()

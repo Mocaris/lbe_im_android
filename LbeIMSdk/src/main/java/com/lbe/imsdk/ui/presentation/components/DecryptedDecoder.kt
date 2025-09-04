@@ -9,10 +9,11 @@ import coil3.fetch.SourceFetchResult
 import coil3.request.Options
 import com.lbe.imsdk.ui.presentation.viewmodel.ChatScreenViewModel
 import okio.Buffer
-import java.util.Base64
 import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
 
 class DecryptedDecoder(
     private val result: SourceFetchResult,
@@ -41,6 +42,7 @@ class DecryptedDecoder(
     }
 
     class Factory(private val url: String, private val key: String) : Decoder.Factory {
+        @OptIn(ExperimentalEncodingApi::class)
         override fun create(
             result: SourceFetchResult, options: Options, imageLoader: ImageLoader
         ): Decoder {
@@ -62,7 +64,7 @@ class DecryptedDecoder(
                 val source = result.source
                 val respData = source.source().readByteArray()
                 Log.d(ChatScreenViewModel.IMAGE_ENCRYPTION, "repData --->>> ${respData.size}")
-                val decryptedData = cipher.doFinal(Base64.getDecoder().decode(respData))
+                val decryptedData = cipher.doFinal(Base64.decode(respData))
                 Log.d(
                     ChatScreenViewModel.IMAGE_ENCRYPTION,
                     "decryptedData size: ${decryptedData.size},  decryptedData: $decryptedData"

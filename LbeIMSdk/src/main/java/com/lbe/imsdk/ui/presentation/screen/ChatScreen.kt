@@ -998,36 +998,28 @@ fun RecievedFromCustomerService(
                 }
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
-
-                    if (message.customerServiceAvatar.isNotEmpty()) {
-                        val iconUrl =
-                            Gson().fromJson(message.customerServiceAvatar, IconUrl::class.java)
-                        if (iconUrl.url.isNotEmpty()) {
-                            NormalDecryptedOrNotImageView(
-                                key = iconUrl.key,
-                                url = iconUrl.url,
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .clip(CircleShape),
-                                imageLoader,
-                                contentScale = ContentScale.Crop,
-                            )
-                        } else {
-                            Image(
-                                painter = painterResource(id = if (message.senderUid.isEmpty()) R.drawable.robots_avatar else R.drawable.default_cs_avatar),
-                                contentDescription = "",
-                                modifier = Modifier.size(32.dp)
-                            )
-                        }
-                    } else {
-                        Image(
-                            painter = painterResource(id = if (message.senderUid.isEmpty()) R.drawable.robots_avatar else R.drawable.default_cs_avatar),
-                            contentDescription = "",
-                            modifier = Modifier.size(32.dp)
+                    if(message.csAvatar is IconUrl){
+                        NormalDecryptedOrNotImageView(
+                            key = (message.csAvatar as IconUrl).key,
+                            url = (message.csAvatar as IconUrl).url,
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(CircleShape),
+                            imageLoader,
+                            contentScale = ContentScale.Crop,
+                            error = painterResource(id = if (message.senderUid.isEmpty()) R.drawable.robots_avatar else R.drawable.default_cs_avatar),
+                        )
+                    }else{
+                        AsyncImage(
+                            model = message.csAvatar,
+                            contentDescription = "Yo",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(CircleShape),
+                            error = painterResource(id = if (message.senderUid.isEmpty()) R.drawable.robots_avatar else R.drawable.default_cs_avatar),
                         )
                     }
-
-
                     Column(
                         modifier = Modifier
                             .weight(1f)
@@ -1127,6 +1119,7 @@ fun UserInput(
                             .clip(CircleShape),
                         imageLoader,
                         contentScale = ContentScale.Crop,
+                        error = painterResource(id = R.drawable.default_user_avatar),
                     )
                 } else {
                     AsyncImage(
@@ -1136,6 +1129,7 @@ fun UserInput(
                         modifier = Modifier
                             .size(32.dp)
                             .clip(CircleShape),
+                        error = painterResource(id = R.drawable.default_user_avatar),
                     )
                 }
             } else {

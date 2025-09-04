@@ -1,8 +1,11 @@
 package com.lbe.imsdk.model
 
+import com.google.gson.Gson
+import com.lbe.imsdk.model.resp.IconUrl
 import io.realm.kotlin.types.EmbeddedRealmObject
 import io.realm.kotlin.types.RealmInstant
 import io.realm.kotlin.types.RealmObject
+import io.realm.kotlin.types.annotations.Ignore
 import io.realm.kotlin.types.annotations.PrimaryKey
 import org.mongodb.kbson.ObjectId
 
@@ -59,6 +62,18 @@ class MessageEntity : RealmObject {
             message.uploadTask = source.uploadTask
 //            message.canPending = source.canPending
             return message
+        }
+    }
+
+    @Ignore
+    val csAvatar: Any? by lazy {
+        try {
+            if (customerServiceAvatar.isEmpty()) {
+                return@lazy customerServiceAvatar
+            }
+            return@lazy Gson().fromJson(customerServiceAvatar, IconUrl::class.java)
+        } catch (e: Exception) {
+            return@lazy customerServiceAvatar
         }
     }
 

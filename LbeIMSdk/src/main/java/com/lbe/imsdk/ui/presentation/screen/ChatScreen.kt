@@ -360,9 +360,6 @@ fun ChatScreen(
                     ) {
                         itemsIndexed(
                             uiState.messages,
-                            key = { _, msg ->
-                                msg.clientMsgID
-                            },
                         ) { index, message ->
                             MessageItem(
                                 uiState.messages,

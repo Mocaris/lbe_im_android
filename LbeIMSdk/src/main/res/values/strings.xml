@@ -35,4 +35,9 @@
     <string name="content_description_send_fail">Send Failed</string>
     <string name="content_description_read">Read</string>
     <string name="content_description_close">Close</string>
+    <string name="robotManage_robot_30">Human Customer Service</string>
+    <string name="end_service">End service</string>
+    <string name="confirm_end_service">Confirm end of service</string>
+    <string name="end_service_tip">Thank you for your consultation, and I hope I can serve you next time</string>
+    <string name="cancel">Cancel</string>
 </resources>

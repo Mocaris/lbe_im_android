@@ -16,25 +16,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -42,42 +27,18 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.material3.TopAppBarDefaults.topAppBarColors
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.*
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
@@ -96,19 +57,17 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import coil3.ImageLoader
 import coil3.compose.AsyncImage
-
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.gson.Gson
 import com.lbe.imsdk.R
 import com.lbe.imsdk.model.MediaMessage
 import com.lbe.imsdk.model.MessageEntity
+import com.lbe.imsdk.model.req.CustomMessageType
 import com.lbe.imsdk.model.resp.CsJoinInfo
 import com.lbe.imsdk.model.resp.IconUrl
 import com.lbe.imsdk.model.resp.RankingContent
-
-import com.lbe.imsdk.ui.presentation.components.MsgTypeContent
-import com.lbe.imsdk.ui.presentation.components.NormalDecryptedOrNotImageView
+import com.lbe.imsdk.ui.presentation.components.*
 import com.lbe.imsdk.ui.presentation.viewmodel.ChatScreenViewModel
 import com.lbe.imsdk.ui.presentation.viewmodel.ConnectionStatus
 import com.lbe.imsdk.utils.FileUtils
@@ -118,7 +77,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.util.Date
+import java.util.*
 
 data class ChatScreenUiState(
     var messages: List<MessageEntity> = emptyList(),
@@ -159,7 +118,17 @@ fun Appbar(viewModel: ChatScreenViewModel) {
                 )
             }
         }, actions = {
-            IconButton(onClick = {
+            val turnCustom = viewModel.turnCustomServiceState.collectAsState().value
+            if (turnCustom) {
+                Box(modifier = Modifier.padding(end = 16.dp)) {
+                    TurnCustomServiceButton(
+                        stringResource(R.string.end_service),
+                        onClick = viewModel::showEndCustomServiceDialog
+                    )
+                }
+            }
+
+            /*IconButton(onClick = {
                 if (kickOffLine) {
                     Toast.makeText(
                         ctx, kickOfflineMessage, Toast.LENGTH_SHORT
@@ -173,11 +142,11 @@ fun Appbar(viewModel: ChatScreenViewModel) {
                     contentDescription = "Localized description",
                     modifier = Modifier.size(width = 24.dp, height = 24.dp)
                 )
-            }
+            }*/
         })
 }
 
-@OptIn(ExperimentalPermissionsApi::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalPermissionsApi::class)
 @Composable
 fun ChatScreen(
     navController: NavController,
@@ -191,7 +160,7 @@ fun ChatScreen(
     val kickOfflineMessage = stringResource(R.string.chat_session_status_8)
 
     val context = LocalContext.current
-//    val configuration = LocalConfiguration.current
+    val configuration = LocalConfiguration.current
     val density = LocalDensity.current
 
     val uiState by viewModel.uiState.observeAsState(ChatScreenUiState())
@@ -294,248 +263,266 @@ fun ChatScreen(
 
     }
 
-    Scaffold(modifier = Modifier.fillMaxSize(), topBar = { Appbar(viewModel) }) { innerPadding ->
-        Surface(
-            color = Color(0xFFF3F4F6), modifier = Modifier
+    Scaffold(
+        modifier = Modifier
+            .fillMaxSize()
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = {
+                    currentFocus.clearFocus()
+                },
+            ),
+        containerColor = Color(0xFFF3F4F6),
+        topBar = { Appbar(viewModel) }) { innerPadding ->
+        Column(
+            modifier = Modifier
                 .fillMaxSize()
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = currentFocus::clearFocus
-                )
+                .padding(innerPadding)
+                .padding(bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .padding(innerPadding)
-                    .fillMaxSize()
-                    .padding(bottom = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                if (!isConnected) {
-                    Surface(
-                        color = Color(0xffFF6164).copy(0.1f), modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Image(
-                                painter = painterResource(R.drawable.network_unavailable),
-                                contentDescription = "",
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                stringResource(R.string.chat_session_status_9),
-                                style = TextStyle(
-                                    color = Color(0xff979797),
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.W400
-                                ),
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.padding(top = 14.dp, bottom = 14.dp)
-                            )
-                        }
-                    }
-                } else {
-                    HorizontalDivider(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(0.5.dp),
-                        color = Color(0xffEBEBEB),
+            if (!isConnected) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xffFF6164).copy(0.1f)),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Image(
+                        painter = painterResource(R.drawable.network_unavailable),
+                        contentDescription = "",
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        stringResource(R.string.chat_session_status_9),
+                        style = TextStyle(
+                            color = Color(0xff979797),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.W400
+                        ),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(top = 14.dp, bottom = 14.dp)
                     )
                 }
+            } else {
+                HorizontalDivider(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(0.5.dp),
+                    color = Color(0xffEBEBEB),
+                )
+            }
 
-                LightPullToRefreshList(
-                    modifier = Modifier.weight(1f),
-                    isRefreshing = isRefreshing.value,
-                    onRefresh = {
-                        isRefreshing.value = true
-                        if (viewModel.currentPage > 1) {
-                            viewModel.currentPage -= 1
-                            viewModel.filterLocalMessages()
-                        } else {
-                            viewModel.loadHistory()
-                        }
-                        delay(500)
-                        isRefreshing.value = false
-                    }) {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(start = 16.dp, end = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                        contentPadding = PaddingValues(top = 20.dp),
-                        state = lazyListState
-                    ) {
-                        itemsIndexed(
+            LightPullToRefreshList(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                isRefreshing = isRefreshing.value,
+                onRefresh = {
+                    isRefreshing.value = true
+                    if (viewModel.currentPage > 1) {
+                        viewModel.currentPage -= 1
+                        viewModel.filterLocalMessages()
+                    } else {
+                        viewModel.loadHistory()
+                    }
+                    delay(500)
+                    isRefreshing.value = false
+                }) {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(start = 16.dp, end = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    contentPadding = PaddingValues(top = 20.dp),
+                    state = lazyListState
+                ) {
+                    itemsIndexed(
+                        uiState.messages,
+                    ) { index, message ->
+                        MessageItem(
                             uiState.messages,
-                        ) { index, message ->
-                            MessageItem(
-                                uiState.messages,
-                                message = message,
-                                if (message.senderUid == viewModel.uid) MessagePosition.RIGHT
-                                else MessagePosition.LEFT,
-                                viewModel,
-                                navController,
-                                imageLoader,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(bottom = 20.dp),
-                            )
-                            LaunchedEffect(uiState.messages) {
-                                if (index <= uiState.messages.size - 1) {
-                                    val visitAbleMsg = uiState.messages[index]
-                                    if (!visitAbleMsg.readed && visitAbleMsg.senderUid != viewModel.uid) {
-                                        viewModel.markRead(message)
-                                    }
+                            message = message,
+                            if (message.senderUid == viewModel.uid) MessagePosition.RIGHT
+                            else MessagePosition.LEFT,
+                            viewModel,
+                            navController,
+                            imageLoader,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 20.dp),
+                        )
+                        LaunchedEffect(uiState.messages) {
+                            if (index <= uiState.messages.size - 1) {
+                                val visitAbleMsg = uiState.messages[index]
+                                if (!visitAbleMsg.readed && visitAbleMsg.senderUid != viewModel.uid) {
+                                    viewModel.markRead(message)
                                 }
                             }
                         }
                     }
                 }
+            }
 
-                var isExpanded by remember { mutableStateOf(false) }
-                var lineCount by remember { mutableIntStateOf(1) }
-                var textFieldHeight by remember { mutableStateOf(42.dp) }
-                Column {
-                    timeoutTips(viewModel = viewModel)
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(start = 14.dp, end = 16.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier.height(textFieldHeight)
+            var isExpanded by remember { mutableStateOf(false) }
+            var lineCount by remember { mutableIntStateOf(1) }
+            var textFieldHeight by remember { mutableStateOf(42.dp) }
+            Column {
+                if (!viewModel.turnCustomServiceState.collectAsState().value) {
+                    Box(modifier = Modifier.padding(start = 16.dp, bottom = 10.dp)) {
+                        TurnCustomServiceButton(
+                            stringResource(R.string.robotManage_robot_30)
                         ) {
-                            if (isExpanded) {
-                                Surface(
-                                    color = Color.White,
-                                    modifier = Modifier
-                                        .size(24.dp)
-                                        .clip(CircleShape)
-                                        .align(Alignment.TopStart)
-                                        .clickable {
-                                            showDialog = true
-                                        }) {
-                                    Image(
-                                        painter = painterResource(R.drawable.expanded),
-                                        contentDescription = "",
-                                        modifier = Modifier
-                                            .padding(5.dp)
-                                            .size(8.dp)
-                                    )
-                                }
+                            //人工服务
+                            if (kickOffLine) {
+                                Toast.makeText(
+                                    context, kickOfflineMessage, Toast.LENGTH_SHORT
+                                ).show()
+                                return@TurnCustomServiceButton
                             }
-
+                            viewModel.turnCustomerService()
+                        }
+                    }
+                }
+//                timeoutTips(viewModel = viewModel)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(start = 14.dp, end = 16.dp)
+                ) {
+                    Box(
+                        modifier = Modifier.height(textFieldHeight)
+                    ) {
+                        if (isExpanded) {
                             Surface(
                                 color = Color.White,
                                 modifier = Modifier
-                                    .size(42.dp)
+                                    .size(24.dp)
                                     .clip(CircleShape)
-                                    .align(Alignment.BottomStart)
+                                    .align(Alignment.TopStart)
                                     .clickable {
-                                        // 点击选择图片或视频
-                                        if (!mediaPermissionState.allPermissionsGranted) {
-                                            println("授权检查--->>> ${mediaPermissionState.permissions.map { e -> "${e.permission}, ${e.status}" }} ||||| ${mediaPermissionState.allPermissionsGranted}")
-                                            mediaPermissionState.launchMultiplePermissionRequest()
-                                        } else {
-                                            launcher.launch(PickVisualMediaRequest(mediaType = ActivityResultContracts.PickVisualMedia.ImageAndVideo))
-                                        }
+                                        showDialog = true
                                     }) {
                                 Image(
-                                    painter = painterResource(R.drawable.open_file),
+                                    painter = painterResource(R.drawable.expanded),
                                     contentDescription = "",
                                     modifier = Modifier
                                         .padding(5.dp)
-                                        .size(21.dp, 16.dp)
+                                        .size(8.dp)
                                 )
-                                LaunchedEffect(
-                                    pickFileEvent
-                                ) {
-                                    if (pickFilesResult.value.isNotEmpty()) {
-                                        val uris = pickFilesResult.value
-                                        Log.d(
-                                            ChatScreenViewModel.FILE_SELECT,
-                                            "${pickFilesResult.value}"
-                                        )
-                                        for (uri in uris) {
-                                            try {
-                                                val cr = context.contentResolver
-                                                cr.takePersistableUriPermission(
-                                                    uri, Intent.FLAG_GRANT_READ_URI_PERMISSION
-                                                )
-                                                val projection = arrayOf(
-                                                    MediaStore.MediaColumns.DISPLAY_NAME,
-                                                    MediaStore.MediaColumns.MIME_TYPE,
+                            }
+                        }
+
+                        Surface(
+                            color = Color.White,
+                            modifier = Modifier
+                                .size(42.dp)
+                                .clip(CircleShape)
+                                .align(Alignment.BottomStart)
+                                .clickable {
+                                    // 点击选择图片或视频
+                                    if (!mediaPermissionState.allPermissionsGranted) {
+                                        println("授权检查--->>> ${mediaPermissionState.permissions.map { e -> "${e.permission}, ${e.status}" }} ||||| ${mediaPermissionState.allPermissionsGranted}")
+                                        mediaPermissionState.launchMultiplePermissionRequest()
+                                    } else {
+                                        launcher.launch(PickVisualMediaRequest(mediaType = ActivityResultContracts.PickVisualMedia.ImageAndVideo))
+                                    }
+                                }) {
+                            Image(
+                                painter = painterResource(R.drawable.open_file),
+                                contentDescription = "",
+                                modifier = Modifier
+                                    .padding(5.dp)
+                                    .size(21.dp, 16.dp)
+                            )
+                            LaunchedEffect(
+                                pickFileEvent
+                            ) {
+                                if (pickFilesResult.value.isNotEmpty()) {
+                                    val uris = pickFilesResult.value
+                                    Log.d(
+                                        ChatScreenViewModel.FILE_SELECT,
+                                        "${pickFilesResult.value}"
+                                    )
+                                    for (uri in uris) {
+                                        try {
+                                            val cr = context.contentResolver
+                                            cr.takePersistableUriPermission(
+                                                uri, Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                            )
+                                            val projection = arrayOf(
+                                                MediaStore.MediaColumns.DISPLAY_NAME,
+                                                MediaStore.MediaColumns.MIME_TYPE,
 //                                                MediaStore.MediaColumns.DATA,
-                                                )
-                                                val metaCursor =
-                                                    cr.query(uri, projection, null, null, null)
-                                                var fName = ""
-                                                var mime = ""
-                                                metaCursor?.use { mCursor ->
-                                                    if (mCursor.moveToFirst()) {
-                                                        fName = mCursor.getString(0)
-                                                        mime = mCursor.getString(1)
+                                            )
+                                            val metaCursor =
+                                                cr.query(uri, projection, null, null, null)
+                                            var fName = ""
+                                            var mime = ""
+                                            metaCursor?.use { mCursor ->
+                                                if (mCursor.moveToFirst()) {
+                                                    fName = mCursor.getString(0)
+                                                    mime = mCursor.getString(1)
 //                                                    val path = mCursor.getString(2)
 
-                                                    }
                                                 }
+                                            }
 //                                                Log.d(
 //                                                    ChatScreenViewModel.FILE_SELECT,
 //                                                    "查询 --->>> fileName: $fName, mime: $mime, \npath: $path"
 //                                                )
-                                                if (fName.isEmpty()) {
-                                                    return@LaunchedEffect
-                                                }
+                                            if (fName.isEmpty()) {
+                                                return@LaunchedEffect
+                                            }
 
-                                                suspend fun copyToCache(
-                                                    uri: Uri,
-                                                    fName: String
-                                                ): String = withContext(
-                                                    Dispatchers.IO
-                                                ) {
-                                                    val inputStream =
-                                                        context.contentResolver.openInputStream(uri)
-                                                            ?: throw Exception("inputStream is null")
-                                                    val tempFile = File(context.cacheDir, fName)
+                                            suspend fun copyToCache(
+                                                uri: Uri,
+                                                fName: String
+                                            ): String = withContext(
+                                                Dispatchers.IO
+                                            ) {
+                                                val inputStream =
+                                                    context.contentResolver.openInputStream(uri)
+                                                        ?: throw Exception("inputStream is null")
+                                                val tempFile = File(context.cacheDir, fName)
 
-                                                    tempFile.outputStream().use { output ->
-                                                        inputStream.copyTo(output)
-                                                    }
-                                                    return@withContext tempFile.absolutePath
+                                                tempFile.outputStream().use { output ->
+                                                    inputStream.copyTo(output)
                                                 }
+                                                return@withContext tempFile.absolutePath
+                                            }
 
-                                                val path = copyToCache(uri, fName)
-                                                val file = File(path)
-                                                val mediaMessage = MediaMessage(
-                                                    width = 0,
-                                                    height = 0,
-                                                    file = file,
-                                                    path = uri.toString(),
-                                                    mime = mime,
-                                                    isImage = FileUtils.isImage(mime),
-                                                    fileName = fName,
-                                                    fileSize = file.length(),
-                                                )
-                                                if (FileUtils.isImage(mediaMessage.mime) && mediaMessage.file.length() > 1024 * 1024 * 10) {
-                                                    Toast.makeText(
-                                                        context,
-                                                        uploadImageLimit,
-                                                        Toast.LENGTH_SHORT
-                                                    ).show()
-                                                    return@LaunchedEffect
-                                                }
-                                                if (!FileUtils.isImage(mediaMessage.mime) && mediaMessage.file.length() > 1024 * 1024 * 100) {
-                                                    Toast.makeText(
-                                                        context,
-                                                        uploadVideoLimit,
-                                                        Toast.LENGTH_SHORT
-                                                    ).show()
-                                                    return@LaunchedEffect
-                                                }
-                                                viewModel.preInsertUpload(mediaMessage)
+                                            val path = copyToCache(uri, fName)
+                                            val file = File(path)
+                                            val mediaMessage = MediaMessage(
+                                                width = 0,
+                                                height = 0,
+                                                file = file,
+                                                path = uri.toString(),
+                                                mime = mime,
+                                                isImage = FileUtils.isImage(mime),
+                                                fileName = fName,
+                                                fileSize = file.length(),
+                                            )
+                                            if (FileUtils.isImage(mediaMessage.mime) && mediaMessage.file.length() > 1024 * 1024 * 10) {
+                                                Toast.makeText(
+                                                    context,
+                                                    uploadImageLimit,
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                                return@LaunchedEffect
+                                            }
+                                            if (!FileUtils.isImage(mediaMessage.mime) && mediaMessage.file.length() > 1024 * 1024 * 100) {
+                                                Toast.makeText(
+                                                    context,
+                                                    uploadVideoLimit,
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                                return@LaunchedEffect
+                                            }
+                                            viewModel.preInsertUpload(mediaMessage)
 //                                                Log.d(
 //                                                    ChatScreenViewModel.FILE_SELECT,
 //                                                    "found file --->> ${file.name}, ${file.path}, ${file.length()}, ${file.absolutePath}, mimeType: $mime, Is image file: ${
@@ -544,212 +531,206 @@ fun ChatScreen(
 //                                                        )
 //                                                    }"
 //                                                )
-                                            } catch (e: Exception) {
-                                                e.printStackTrace()
-                                            }
+                                        } catch (e: Exception) {
+                                            e.printStackTrace()
                                         }
                                     }
                                 }
                             }
                         }
+                    }
 
-                        Spacer(modifier = Modifier.width(12.dp))
-                        val maxLength = 500
-                        if (showDialog) {
-                            Dialog(
-                                onDismissRequest = { showDialog = false },
-                                properties = DialogProperties(usePlatformDefaultWidth = false)
+                    Spacer(modifier = Modifier.width(12.dp))
+                    val maxLength = 500
+                    if (showDialog) {
+                        Dialog(
+                            onDismissRequest = { showDialog = false },
+                            properties = DialogProperties(usePlatformDefaultWidth = false)
+                        ) {
+                            Surface(
+                                modifier = Modifier.fillMaxSize(),
+                                shape = MaterialTheme.shapes.medium,
+                                color = Color(0xFFF3F4F6)
                             ) {
-                                Surface(
-                                    modifier = Modifier.fillMaxSize(),
-                                    shape = MaterialTheme.shapes.medium,
-                                    color = Color(0xFFF3F4F6)
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(16.dp)
                                 ) {
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .padding(16.dp)
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween
-                                        ) {
-                                            Surface(
-                                                color = Color.White,
+                                        Surface(
+                                            color = Color.White,
+                                            modifier = Modifier
+                                                .size(24.dp)
+                                                .clip(CircleShape)
+                                                .clickable {
+                                                    showDialog = false
+                                                }) {
+                                            Image(
+                                                painter = painterResource(R.drawable.close),
+                                                contentDescription = "",
                                                 modifier = Modifier
-                                                    .size(24.dp)
-                                                    .clip(CircleShape)
-                                                    .clickable {
-                                                        showDialog = false
-                                                    }) {
-                                                Image(
-                                                    painter = painterResource(R.drawable.close),
-                                                    contentDescription = "",
-                                                    modifier = Modifier
-                                                        .padding(5.dp)
-                                                        .size(8.dp)
-                                                )
-                                            }
-
-                                            Text(
-                                                "${input.length}/$maxLength", style = TextStyle(
-                                                    fontSize = 12.sp,
-                                                    fontWeight = FontWeight.W400,
-                                                    color = Color(0xff979797)
-                                                )
+                                                    .padding(5.dp)
+                                                    .size(8.dp)
                                             )
                                         }
-                                        Spacer(Modifier.height(8.dp))
-                                        BasicTextField(
-                                            value = input,
-                                            onValueChange = { newValue ->
-                                                if (newValue.length <= maxLength) {
-                                                    viewModel.onMessageChange(newValue)
-                                                }
+
+                                        Text(
+                                            "${input.length}/$maxLength", style = TextStyle(
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.W400,
+                                                color = Color(0xff979797)
+                                            )
+                                        )
+                                    }
+                                    Spacer(Modifier.height(8.dp))
+                                    BasicTextField(
+                                        value = input,
+                                        onValueChange = { newValue ->
+                                            if (newValue.length <= maxLength) {
+                                                viewModel.onMessageChange(newValue)
+                                            }
+                                        },
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .pointerInput(Unit) {
+                                                detectTapGestures(onLongPress = {
+                                                    clipboardManager
+                                                        .getText()
+                                                        ?.let { clipboardText ->
+                                                            viewModel.onMessageChange(
+                                                                clipboardText.text
+                                                            )
+                                                        }
+                                                })
                                             },
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .pointerInput(Unit) {
-                                                    detectTapGestures(onLongPress = {
-                                                        clipboardManager
-                                                            .getText()
-                                                            ?.let { clipboardText ->
-                                                                viewModel.onMessageChange(
-                                                                    clipboardText.text
-                                                                )
-                                                            }
-                                                    })
-                                                },
-                                            readOnly = false,
-                                            textStyle = TextStyle(
+                                        readOnly = false,
+                                        textStyle = TextStyle(
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.W400,
+                                            color = Color.Black,
+                                        ),
+                                        keyboardOptions = KeyboardOptions(
+                                            keyboardType = KeyboardType.Text,
+                                            imeAction = ImeAction.None,
+                                        ),
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    BasicTextField(
+                        value = input,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color.White)
+                            .combinedClickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                onLongClick = {
+                                    clipboardManager
+                                        .getText()
+                                        ?.let { clipboardText ->
+                                            viewModel.onMessageChange(
+                                                clipboardText.text
+                                            )
+                                        }
+                                },
+                                onClick = {}
+                            ),
+                        onValueChange = { newValue ->
+                            if (newValue.length <= maxLength) {
+                                viewModel.onMessageChange(newValue)
+                            }
+                        },
+                        maxLines = 5,
+                        onTextLayout = { textLayoutResult ->
+                            lineCount = textLayoutResult.lineCount
+                            isExpanded = lineCount > 4
+                            if (!isExpanded) {
+                                if (lineCount < 2) {
+                                    textFieldHeight = 42.dp
+                                } else {
+                                    val calculatedHeightPx = textLayoutResult.size.height
+                                    textFieldHeight = with(density) {
+                                        calculatedHeightPx.toDp().plus(23.dp)
+                                            .coerceAtMost(203.dp)
+                                    }
+                                }
+                            }
+                        },
+                        decorationBox = { innerTextField ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(min = 42.dp, max = 180.dp)
+                                    .padding(
+                                        start = 12.dp,
+                                        end = 12.dp,
+                                        top = 9.dp,
+                                        bottom = 11.dp
+                                    ),
+                                verticalAlignment = Alignment.Bottom,
+                            ) {
+                                Box(Modifier.weight(1f)) {
+                                    innerTextField()
+                                    if (input.isEmpty()) {
+                                        Text(
+                                            stringResource(R.string.chat_session_status_12),
+                                            style = TextStyle(
+                                                color = Color(0xffEBEBEB),
                                                 fontSize = 14.sp,
                                                 fontWeight = FontWeight.W400,
-                                                color = Color.Black,
-                                            ),
-                                            keyboardOptions = KeyboardOptions(
-                                                keyboardType = KeyboardType.Text,
-                                                imeAction = ImeAction.None,
-                                            ),
+                                            )
                                         )
                                     }
                                 }
-                            }
-                        }
-
-                        println("动态 TextField --->> isExpanded: $isExpanded")
-                        BasicTextField(
-                            value = input,
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Text,
-                                imeAction = ImeAction.None,
-                            ),
-                            readOnly = false,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(max = 180.dp)
-                                .pointerInput(Unit) {
-                                    detectTapGestures(
-                                        onLongPress = {
-                                            clipboardManager
-                                                .getText()
-                                                ?.let { clipboardText ->
-                                                    viewModel.onMessageChange(
-                                                        clipboardText.text
-                                                    )
-                                                }
-                                        },
-                                    )
-                                },
-                            onValueChange = { newValue ->
-                                if (newValue.length <= maxLength) {
-                                    viewModel.onMessageChange(newValue)
-                                }
-                            },
-                            maxLines = 5,
-                            onTextLayout = { textLayoutResult ->
-                                lineCount = textLayoutResult.lineCount
-                                isExpanded = lineCount > 4
-
-                                if (!isExpanded) {
-                                    if (lineCount < 2) {
-                                        textFieldHeight = 42.dp
-                                    } else {
-                                        val calculatedHeightPx = textLayoutResult.size.height
-                                        textFieldHeight = with(density) {
-                                            calculatedHeightPx.toDp().plus(23.dp)
-                                                .coerceAtMost(203.dp)
-                                        }
-                                    }
-                                }
-                            },
-                            decorationBox = { innerTextField ->
-                                Surface(
-                                    color = Color.White,
+                                val cannotSendEmptyMessage =
+                                    stringResource(R.string.chat_session_status_23)
+                                Image(
+                                    painter = painterResource(R.drawable.send),
+                                    contentDescription = "Send Button",
                                     modifier = Modifier
-                                        .heightIn(min = 42.dp)
-                                        .clip(RoundedCornerShape(12.dp))
-                                ) {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(
-                                                start = 12.dp,
-                                                end = 12.dp,
-                                                top = 9.dp,
-                                                bottom = 11.dp
-                                            ),
-                                        verticalAlignment = Alignment.Bottom,
-                                    ) {
-                                        Box(Modifier.weight(1f)) {
-                                            if (input.isEmpty()) Text(
-                                                stringResource(R.string.chat_session_status_12),
-                                                style = TextStyle(
-                                                    color = Color(0xffEBEBEB),
-                                                    fontSize = 14.sp,
-                                                    fontWeight = FontWeight.W400,
-                                                )
-                                            )
-                                            innerTextField()
-                                        }
+                                        .size(18.dp)
+                                        .clickable {
+                                            if (kickOffLine) {
+                                                Toast
+                                                    .makeText(
+                                                        context,
+                                                        kickOfflineMessage,
+                                                        Toast.LENGTH_SHORT
+                                                    )
+                                                    .show()
+                                                return@clickable
+                                            }
 
-                                        val cannotSendEmptyMessage =
-                                            stringResource(R.string.chat_session_status_23)
-                                        Image(
-                                            painter = painterResource(R.drawable.send),
-                                            contentDescription = "Send Button",
-                                            modifier = Modifier
-                                                .size(18.dp)
-                                                .clickable {
-                                                    if (kickOffLine) {
-                                                        Toast
-                                                            .makeText(
-                                                                context,
-                                                                kickOfflineMessage,
-                                                                Toast.LENGTH_SHORT
-                                                            )
-                                                            .show()
-                                                        return@clickable
-                                                    }
-
-                                                    viewModel.sendMessageFromTextInput(messageSent = {
-                                                        currentFocus.clearFocus()
-                                                    }, trimToast = {
-                                                        Toast
-                                                            .makeText(
-                                                                context,
-                                                                cannotSendEmptyMessage,
-                                                                Toast.LENGTH_SHORT
-                                                            )
-                                                            .show()
-                                                    })
-                                                })
-                                    }
-                                }
-                            },
-                        )
-                    }
+                                            viewModel.sendMessageFromTextInput(messageSent = {
+                                                currentFocus.clearFocus()
+                                            }, trimToast = {
+                                                Toast
+                                                    .makeText(
+                                                        context,
+                                                        cannotSendEmptyMessage,
+                                                        Toast.LENGTH_SHORT
+                                                    )
+                                                    .show()
+                                            })
+                                        })
+                            }
+                        },
+                    )
                 }
             }
+        }
+
+        if (viewModel.endCustomServiceDialog.collectAsState().value) {
+            EndCustomServiceDialog(onDismissRequest = {
+                viewModel.endCustomServiceDialog.value = false
+            }, endService = viewModel::endCustomService)
         }
 
         AnimatedVisibility(visible = showToBottomButton, enter = fadeIn(), exit = fadeOut()) {
@@ -886,44 +867,8 @@ fun MessageItem(
     imageLoader: ImageLoader,
     modifier: Modifier,
 ) {
-    Box(
-        modifier = modifier,
-        contentAlignment = if (messagePosition == MessagePosition.LEFT) Alignment.TopStart else Alignment.BottomEnd
-    ) {
-        if (messagePosition == MessagePosition.LEFT) {
-            RecievedFromCustomerService(
-                messages,
-                message,
-                messagePosition,
-                viewModel = viewModel,
-                navController,
-                imageLoader
-            )
-        } else {
-            UserInput(
-                messages,
-                message,
-                messagePosition,
-                viewModel = viewModel,
-                navController,
-                imageLoader
-            )
-        }
-    }
-}
-
-@Composable
-fun RecievedFromCustomerService(
-    messages: List<MessageEntity>,
-    message: MessageEntity,
-    messagePosition: MessagePosition,
-    viewModel: ChatScreenViewModel,
-    navController: NavController,
-    imageLoader: ImageLoader,
-) {
     when (message.msgType) {
         4 -> {}
-
         5 -> {
             if (message.msgBody.isNotEmpty()) {
                 val csJoinInfo = Gson().fromJson(message.msgBody, CsJoinInfo::class.java)
@@ -993,99 +938,128 @@ fun RecievedFromCustomerService(
                 13 -> stringResource(R.string.chat_session_status_7)
                 else -> "Not result"
             }
+            SystemMessageContent(content)
+        }
+
+        CustomMessageType.TYPE_TIME_OUT_REPLY -> {
+            SystemMessageContent(stringResource(R.string.chat_session_status_3, viewModel.timeOut))
+        }
+
+        else ->
+            Box(
+                modifier = modifier,
+                contentAlignment = if (messagePosition == MessagePosition.LEFT) Alignment.TopStart else Alignment.BottomEnd
+            ) {
+                if (messagePosition == MessagePosition.LEFT) {
+                    RecievedFromCustomerService(
+                        messages,
+                        message,
+                        messagePosition,
+                        viewModel = viewModel,
+                        navController,
+                        imageLoader
+                    )
+                } else {
+                    UserInput(
+                        messages,
+                        message,
+                        messagePosition,
+                        viewModel = viewModel,
+                        navController,
+                        imageLoader
+                    )
+                }
+            }
+    }
+}
+
+@Composable
+fun RecievedFromCustomerService(
+    messages: List<MessageEntity>,
+    message: MessageEntity,
+    messagePosition: MessagePosition,
+    viewModel: ChatScreenViewModel,
+    navController: NavController,
+    imageLoader: ImageLoader,
+) {
+    val currentIndex = messages.indexOf(message)
+    var needShowTime = false
+    var sameCurrentDay = false
+    if (currentIndex != 0) {
+        val prev = messages[currentIndex - 1]
+        val diff = (message.sendTime - prev.sendTime) / 1000
+        sameCurrentDay = TimeUtils.isSameDay(Date(), Date(message.sendTime))
+        if (diff > 60 * 3) {
+            needShowTime = true
+        }
+    }
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        AnimatedVisibility(visible = needShowTime) {
             Box(contentAlignment = Alignment.Center) {
                 Text(
-                    content,
+                    if (sameCurrentDay) TimeUtils.formatHHMMTime(message.sendTime) else TimeUtils.formatYYMMHHMMTime(
+                        message.sendTime
+                    ),
                     style = TextStyle(
-                        color = Color(0xFF979797), fontSize = 10.sp, fontWeight = FontWeight.W400,
+                        color = Color(0xff979797),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.W400
                     ),
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 9.dp)
                 )
             }
         }
 
-        else -> {
-            val currentIndex = messages.indexOf(message)
-            var needShowTime = false
-            var sameCurrentDay = false
-            if (currentIndex != 0) {
-                val prev = messages[currentIndex - 1]
-                val diff = (message.sendTime - prev.sendTime) / 1000
-                sameCurrentDay = TimeUtils.isSameDay(Date(), Date(message.sendTime))
-                if (diff > 60 * 3) {
-                    needShowTime = true
-                }
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
+            if (message.csAvatar is IconUrl) {
+                NormalDecryptedOrNotImageView(
+                    key = (message.csAvatar as IconUrl).key,
+                    url = (message.csAvatar as IconUrl).url,
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape),
+                    imageLoader,
+                    contentScale = ContentScale.Crop,
+                    error = painterResource(id = if (message.senderUid.isEmpty()) R.drawable.robots_avatar else R.drawable.default_cs_avatar),
+                )
+            } else {
+                AsyncImage(
+                    model = message.csAvatar,
+                    contentDescription = "Yo",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape),
+                    error = painterResource(id = if (message.senderUid.isEmpty()) R.drawable.robots_avatar else R.drawable.default_cs_avatar),
+                )
             }
-
             Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(8.dp)
             ) {
-                AnimatedVisibility(visible = needShowTime) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            if (sameCurrentDay) TimeUtils.formatHHMMTime(message.sendTime) else TimeUtils.formatYYMMHHMMTime(
-                                message.sendTime
-                            ),
-                            style = TextStyle(
-                                color = Color(0xff979797),
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.W400
-                            ),
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 9.dp)
-                        )
-                    }
-                }
-
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
-                    if (message.csAvatar is IconUrl) {
-                        NormalDecryptedOrNotImageView(
-                            key = (message.csAvatar as IconUrl).key,
-                            url = (message.csAvatar as IconUrl).url,
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(CircleShape),
-                            imageLoader,
-                            contentScale = ContentScale.Crop,
-                            error = painterResource(id = if (message.senderUid.isEmpty()) R.drawable.robots_avatar else R.drawable.default_cs_avatar),
-                        )
-                    } else {
-                        AsyncImage(
-                            model = message.csAvatar,
-                            contentDescription = "Yo",
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(CircleShape),
-                            error = painterResource(id = if (message.senderUid.isEmpty()) R.drawable.robots_avatar else R.drawable.default_cs_avatar),
-                        )
-                    }
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(8.dp)
-                    ) {
-                        Text(
-                            text = message.customerServiceNickname.ifEmpty {
-                                if (message.senderUid.isNotEmpty()) stringResource(
-                                    R.string.chat_session_status_1
-                                ) else stringResource(R.string.chat_session_status_14)
-                            },
-                            modifier = Modifier.align(if (messagePosition == MessagePosition.LEFT) Alignment.Start else Alignment.End),
-                            style = TextStyle(
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.W400,
-                                color = Color(0xff979797)
-                            )
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        MsgTypeContent(message, viewModel, navController, false, imageLoader)
-                    }
-                }
+                Text(
+                    text = message.customerServiceNickname.ifEmpty {
+                        if (message.senderUid.isNotEmpty()) stringResource(
+                            R.string.chat_session_status_1
+                        ) else stringResource(R.string.chat_session_status_14)
+                    },
+                    modifier = Modifier.align(if (messagePosition == MessagePosition.LEFT) Alignment.Start else Alignment.End),
+                    style = TextStyle(
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.W400,
+                        color = Color(0xff979797)
+                    )
+                )
+                Spacer(Modifier.height(8.dp))
+                MsgTypeContent(message, viewModel, navController, false, imageLoader)
             }
         }
     }

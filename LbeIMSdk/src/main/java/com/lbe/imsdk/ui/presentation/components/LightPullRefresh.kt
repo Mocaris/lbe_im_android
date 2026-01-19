@@ -53,14 +53,14 @@ fun LightPullToRefreshList(
         contentAlignment = Alignment.TopCenter,
         indicator = {
             Box(
-                modifier =
-                    Modifier.pullToRefreshIndicator(
-                    state = state,
-                    isRefreshing = isRefreshing,
-                    containerColor = Color.Transparent,
-                    threshold = PositionalThreshold,
-                    elevation = 0.dp
-                ),
+                modifier = Modifier
+                    .pullToRefreshIndicator(
+                        state = state,
+                        isRefreshing = isRefreshing,
+                        containerColor = Color.Transparent,
+                        threshold = PositionalThreshold,
+                        elevation = 0.dp
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 RotatingImage(

@@ -7,6 +7,7 @@ import android.util.*
 import androidx.activity.*
 import androidx.activity.compose.*
 import androidx.compose.ui.platform.*
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.viewmodel.compose.*
 import androidx.navigation.compose.*
 import coil3.ImageLoader

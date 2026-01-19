@@ -13,7 +13,6 @@ import android.os.Build
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.runtime.State
-import androidx.core.content.edit
 import androidx.core.net.toFile
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
@@ -24,32 +23,11 @@ import com.lbe.imsdk.data.local.IMLocalRepository
 import com.lbe.imsdk.data.remote.LbeConfigApiRepository
 import com.lbe.imsdk.data.remote.LbeImApiRepository
 import com.lbe.imsdk.data.remote.LbeOssApiRepository
-import com.lbe.imsdk.model.InitArgs
-import com.lbe.imsdk.model.LocalMediaFile
-import com.lbe.imsdk.model.MediaMessage
-import com.lbe.imsdk.model.MessageEntity
-import com.lbe.imsdk.model.TempUploadInfo
-import com.lbe.imsdk.model.UploadStatus
-import com.lbe.imsdk.model.UploadTask
+import com.lbe.imsdk.model.*
 import com.lbe.imsdk.model.proto.IMMsg
-import com.lbe.imsdk.model.req.CompleteMultiPartUploadReq
-import com.lbe.imsdk.model.req.ConfigBody
-import com.lbe.imsdk.model.req.FaqReqBody
-import com.lbe.imsdk.model.req.HistoryBody
-import com.lbe.imsdk.model.req.InitMultiPartUploadBody
-import com.lbe.imsdk.model.req.MarkReadReqBody
-import com.lbe.imsdk.model.req.MsgBody
+import com.lbe.imsdk.model.req.*
 import com.lbe.imsdk.model.req.Pagination
-import com.lbe.imsdk.model.req.Part
-import com.lbe.imsdk.model.req.SeqCondition
-import com.lbe.imsdk.model.req.SessionBody
-import com.lbe.imsdk.model.req.SessionListReq
-import com.lbe.imsdk.model.resp.IconUrl
-import com.lbe.imsdk.model.resp.InitMultiPartUploadRep
-import com.lbe.imsdk.model.resp.MediaSource
-import com.lbe.imsdk.model.resp.Resource
-import com.lbe.imsdk.model.resp.SingleUploadRep
-import com.lbe.imsdk.model.resp.Thumbnail
+import com.lbe.imsdk.model.resp.*
 import com.lbe.imsdk.service.BASE_URL
 import com.lbe.imsdk.service.ChatService
 import com.lbe.imsdk.service.DynamicHeaderUrlRequestFactory
@@ -65,7 +43,6 @@ import com.lbe.imsdk.utils.FileLogger
 import com.lbe.imsdk.utils.TimeUtils.timeStampGen
 import com.lbe.imsdk.utils.UUIDUtils.uuidGen
 import com.lbe.imsdk.utils.UploadBigFileUtils
-import com.lbe.imsdk.model.resp.SessionEntry
 import com.tinder.scarlet.Message
 import com.tinder.scarlet.Scarlet
 import com.tinder.scarlet.WebSocket
@@ -77,14 +54,9 @@ import com.tinder.scarlet.WebSocket.Event.OnMessageReceived
 import com.tinder.scarlet.streamadapter.rxjava2.RxJava2StreamAdapterFactory
 import com.tinder.scarlet.websocket.okhttp.newWebSocketFactory
 import io.reactivex.disposables.Disposable
-import kotlinx.coroutines.CoroutineExceptionHandler
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
@@ -94,9 +66,8 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
 import java.security.MessageDigest
-import java.util.Timer
-import java.util.TimerTask
-import java.util.concurrent.TimeUnit
+import java.util.*
+import java.util.concurrent.*
 import kotlin.collections.*
 
 enum class ConnectionStatus {
@@ -165,6 +136,10 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
     var kickOfflineEvent = MutableStateFlow(value = "")
     var kickOffLine = MutableStateFlow(false)
     var faqNotExistEvent = MutableStateFlow(value = "")
+
+    //接入人工客服
+    val turnCustomServiceState = MutableStateFlow(false)
+    val endCustomServiceDialog = MutableStateFlow(false)
 
     private lateinit var initArgs: InitArgs
 
@@ -614,14 +589,19 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
             return
         }
         viewModelScope.launch(Dispatchers.IO + coroutineExceptionHandler) {
+            if (null == imApiRepository) {
+                return@launch
+            }
             try {
-                imApiRepository?.turnCustomerService(
+                imApiRepository!!.turnCustomerService(
                     lbeSign = lbeSign,
                     lbeToken = lbeToken,
                     lbeIdentity = lbeIdentity,
                     lbeSession = lbeSession,
                 )
+                turnCustomServiceState.value = true
             } catch (e: Exception) {
+                turnCustomServiceState.value = false
                 Log.d(RETROFIT, "Fetch turnCSResp  error: $e")
             }
         }
@@ -781,6 +761,9 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
                             seq = receivedSeq
                             recivCount.value += 1
                         }
+                        if (remoteLastMsgType == 5) {
+                            turnCustomServiceState.value = true
+                        }
                         Log.d(
                             TAG, "收到消息 --->> seq: $seq, remoteLastMsgType: $remoteLastMsgType"
                         )
@@ -854,37 +837,30 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
 
     private fun scheduleTimeoutJob() {
         val period = 1000 * 60 * timeOut
-        if (timeOutTimer == null) {
-            Log.d("TimeOut", "超时提醒，period: $period")
-            timeOutTimer = Timer()
-            timeOutTimer?.schedule(object : TimerTask() {
-                override fun run() {
-                    Log.d("TimeOut", "超时提醒， seq: $seq, last: ${lastCsMessage?.msgSeq}")
-                    if (lastCsMessage?.msgSeq!! <= seq) {
-                        Log.d("TimeOut", "超时提醒，用户没回复")
-                        isTimeOut.update { _ -> true }
-                        timeOutTimer?.cancel()
-                        timeOutTimer = null
-                    }
+        Log.d("TimeOut", "超时提醒，period: $period")
+        timeOutTimer?.cancel()
+        timeOutTimer = Timer()
+        timeOutTimer?.schedule(object : TimerTask() {
+            override fun run() {
+                if (lastCsMessage?.msgSeq!! <= seq) {
+                    generateLocalTimeOutMessage()
+                    Log.d(
+                        "TimeOut",
+                        "客服回复重启，用户没回复， seq: $seq, last: ${lastCsMessage?.msgSeq}"
+                    )
+                    isTimeOut.update { _ -> true }
+                    timeOutTimer?.cancel()
+                    timeOutTimer = null
                 }
-            }, period)
-        } else {
-            timeOutTimer?.cancel()
-            timeOutTimer = null
-            timeOutTimer = Timer()
-            timeOutTimer?.schedule(object : TimerTask() {
-                override fun run() {
-                    if (lastCsMessage?.msgSeq!! <= seq) {
-                        Log.d(
-                            "TimeOut",
-                            "客服回复重启，用户没回复， seq: $seq, last: ${lastCsMessage?.msgSeq}"
-                        )
-                        isTimeOut.update { _ -> true }
-                        timeOutTimer?.cancel()
-                        timeOutTimer = null
-                    }
-                }
-            }, period)
+            }
+        }, period)
+    }
+
+    /// 超时处理，只保留在本地
+    fun generateLocalTimeOutMessage() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val sendBody = genMsgBody(type = CustomMessageType.TYPE_TIME_OUT_REPLY, msgBody = "")
+            insertCacheMaybeUpdateUI(sendBody, localFile = null, updateUI = false)
         }
     }
 
@@ -1737,6 +1713,15 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
             delay(50)
             _inputMsg.postValue("")
         }
+    }
+
+    fun showEndCustomServiceDialog() {
+        endCustomServiceDialog.value = true
+    }
+
+    fun endCustomService() {
+        //TODO
+        println("结束客服")
     }
 }
 

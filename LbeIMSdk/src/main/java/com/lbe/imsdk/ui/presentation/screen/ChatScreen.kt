@@ -110,8 +110,10 @@ import com.lbe.imsdk.ui.presentation.viewmodel.ChatScreenViewModel
 import com.lbe.imsdk.ui.presentation.viewmodel.ConnectionStatus
 import com.lbe.imsdk.utils.FileUtils
 import com.lbe.imsdk.utils.TimeUtils
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.Date
 
@@ -132,43 +134,44 @@ fun Appbar(viewModel: ChatScreenViewModel) {
     val kickOfflineMessage = stringResource(R.string.chat_session_status_8)
     val ctx = LocalContext.current
 
-    CenterAlignedTopAppBar(title = {
-        Text(
-            stringResource(R.string.chat_session_status_1), style = TextStyle(
-                color = Color(0xff18243E), fontSize = 18.sp, fontWeight = FontWeight.W500
+    CenterAlignedTopAppBar(
+        title = {
+            Text(
+                stringResource(R.string.chat_session_status_1), style = TextStyle(
+                    color = Color(0xff18243E), fontSize = 18.sp, fontWeight = FontWeight.W500
+                )
             )
-        )
-    }, colors = topAppBarColors(
-        containerColor = Color(0xFFF3F4F6), titleContentColor = Color.Black
-    ), navigationIcon = {
-        IconButton(onClick = {
-            if (ctx is Activity) {
-                ctx.finish()
+        }, colors = topAppBarColors(
+            containerColor = Color(0xFFF3F4F6), titleContentColor = Color.Black
+        ), navigationIcon = {
+            IconButton(onClick = {
+                if (ctx is Activity) {
+                    ctx.finish()
+                }
+            }) {
+                Image(
+                    painter = painterResource(R.drawable.back),
+                    contentDescription = "Localized description",
+                    modifier = Modifier.size(width = 24.dp, height = 24.dp)
+                )
             }
-        }) {
-            Image(
-                painter = painterResource(R.drawable.back),
-                contentDescription = "Localized description",
-                modifier = Modifier.size(width = 24.dp, height = 24.dp)
-            )
-        }
-    }, actions = {
-        IconButton(onClick = {
-            if (kickOffLine) {
-                Toast.makeText(
-                    ctx, kickOfflineMessage, Toast.LENGTH_SHORT
-                ).show()
-                return@IconButton
+        }, actions = {
+            IconButton(onClick = {
+                if (kickOffLine) {
+                    Toast.makeText(
+                        ctx, kickOfflineMessage, Toast.LENGTH_SHORT
+                    ).show()
+                    return@IconButton
+                }
+                viewModel.turnCustomerService()
+            }) {
+                Image(
+                    painter = painterResource(R.drawable.cs),
+                    contentDescription = "Localized description",
+                    modifier = Modifier.size(width = 24.dp, height = 24.dp)
+                )
             }
-            viewModel.turnCustomerService()
-        }) {
-            Image(
-                painter = painterResource(R.drawable.cs),
-                contentDescription = "Localized description",
-                modifier = Modifier.size(width = 24.dp, height = 24.dp)
-            )
-        }
-    })
+        })
 }
 
 @OptIn(ExperimentalPermissionsApi::class)
@@ -206,12 +209,13 @@ fun ChatScreen(
     val pickFilesResult = remember { mutableStateOf<List<Uri>>(emptyList()) }
 
     val launcher =
-        rememberLauncherForActivityResult(contract = ActivityResultContracts.PickMultipleVisualMedia(
-            9
-        ), onResult = { uris: List<Uri> ->
-            pickFilesResult.value = uris
-            pickFileEvent = pickFileEvent.plus(",")
-        })
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.PickMultipleVisualMedia(
+                9
+            ), onResult = { uris: List<Uri> ->
+                pickFilesResult.value = uris
+                pickFileEvent = pickFileEvent.plus(",")
+            })
 
     val mediaPermissionState = rememberMultiplePermissionsState(
         permissions = if (SDK_INT >= Build.VERSION_CODES.TIRAMISU) listOf(
@@ -288,13 +292,14 @@ fun ChatScreen(
     }
 
     Scaffold(modifier = Modifier.fillMaxSize(), topBar = { Appbar(viewModel) }) { innerPadding ->
-        Surface(color = Color(0xFFF3F4F6), modifier = Modifier
-            .fillMaxSize()
-            .pointerInput(Unit) {
-                detectTapGestures {
-                    currentFocus.clearFocus()
-                }
-            }) {
+        Surface(
+            color = Color(0xFFF3F4F6), modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(Unit) {
+                    detectTapGestures {
+                        currentFocus.clearFocus()
+                    }
+                }) {
             Column(
                 modifier = Modifier
                     .padding(innerPadding)
@@ -337,7 +342,8 @@ fun ChatScreen(
                     )
                 }
 
-                LightPullToRefreshList(modifier = Modifier.weight(1f),
+                LightPullToRefreshList(
+                    modifier = Modifier.weight(1f),
                     isRefreshing = isRefreshing.value,
                     onRefresh = {
                         isRefreshing.value = true
@@ -399,7 +405,8 @@ fun ChatScreen(
                             modifier = Modifier.height(textFieldHeight)
                         ) {
                             if (isExpanded) {
-                                Surface(color = Color.White,
+                                Surface(
+                                    color = Color.White,
                                     modifier = Modifier
                                         .size(24.dp)
                                         .clip(CircleShape)
@@ -417,7 +424,8 @@ fun ChatScreen(
                                 }
                             }
 
-                            Surface(color = Color.White,
+                            Surface(
+                                color = Color.White,
                                 modifier = Modifier
                                     .size(42.dp)
                                     .clip(CircleShape)
@@ -448,63 +456,92 @@ fun ChatScreen(
                                             "${pickFilesResult.value}"
                                         )
                                         for (uri in uris) {
-                                            val cr = context.contentResolver
-                                            cr.takePersistableUriPermission(
-                                                uri, Intent.FLAG_GRANT_READ_URI_PERMISSION
-                                            )
-                                            val projection = arrayOf(
-                                                MediaStore.MediaColumns.DISPLAY_NAME,
-                                                MediaStore.MediaColumns.MIME_TYPE,
-                                                MediaStore.MediaColumns.DATA,
-                                            )
-                                            val metaCursor =
-                                                cr.query(uri, projection, null, null, null)
-                                            metaCursor?.use { mCursor ->
-                                                if (mCursor.moveToFirst()) {
-                                                    val fName = mCursor.getString(0)
-                                                    val mime = mCursor.getString(1)
-                                                    val path = mCursor.getString(2)
-                                                    Log.d(
-                                                        ChatScreenViewModel.FILE_SELECT,
-                                                        "查询 --->>> fileName: $fName, mime: $mime, \npath: $path"
-                                                    )
-                                                    val file = File(path)
-                                                    val mediaMessage = MediaMessage(
-                                                        width = 0,
-                                                        height = 0,
-                                                        file = file,
-                                                        path = uri.toString(),
-                                                        mime = mime,
-                                                        isImage = FileUtils.isImage(mime),
-                                                        fileName = fName,
-                                                        fileSize = file.length(),
-                                                    )
-                                                    if (FileUtils.isImage(mediaMessage.mime) && mediaMessage.file.length() > 1024 * 1024 * 10) {
-                                                        Toast.makeText(
-                                                            context,
-                                                            uploadImageLimit,
-                                                            Toast.LENGTH_SHORT
-                                                        ).show()
-                                                        return@LaunchedEffect
+                                            try {
+                                                val cr = context.contentResolver
+                                                cr.takePersistableUriPermission(
+                                                    uri, Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                                )
+                                                val projection = arrayOf(
+                                                    MediaStore.MediaColumns.DISPLAY_NAME,
+                                                    MediaStore.MediaColumns.MIME_TYPE,
+//                                                MediaStore.MediaColumns.DATA,
+                                                )
+                                                val metaCursor =
+                                                    cr.query(uri, projection, null, null, null)
+                                                var fName = ""
+                                                var mime = ""
+                                                metaCursor?.use { mCursor ->
+                                                    if (mCursor.moveToFirst()) {
+                                                        fName = mCursor.getString(0)
+                                                        mime = mCursor.getString(1)
+//                                                    val path = mCursor.getString(2)
+
                                                     }
-                                                    if (!FileUtils.isImage(mediaMessage.mime) && mediaMessage.file.length() > 1024 * 1024 * 100) {
-                                                        Toast.makeText(
-                                                            context,
-                                                            uploadVideoLimit,
-                                                            Toast.LENGTH_SHORT
-                                                        ).show()
-                                                        return@LaunchedEffect
-                                                    }
-                                                    viewModel.preInsertUpload(mediaMessage)
-                                                    Log.d(
-                                                        ChatScreenViewModel.FILE_SELECT,
-                                                        "found file --->> ${file.name}, ${file.path}, ${file.length()}, ${file.absolutePath}, mimeType: $mime, Is image file: ${
-                                                            FileUtils.isImage(
-                                                                mime
-                                                            )
-                                                        }"
-                                                    )
                                                 }
+//                                                Log.d(
+//                                                    ChatScreenViewModel.FILE_SELECT,
+//                                                    "查询 --->>> fileName: $fName, mime: $mime, \npath: $path"
+//                                                )
+                                                if (fName.isEmpty()) {
+                                                    return@LaunchedEffect
+                                                }
+
+                                                suspend fun copyToCache(
+                                                    uri: Uri,
+                                                    fName: String
+                                                ): String = withContext(
+                                                    Dispatchers.IO
+                                                ) {
+                                                    val inputStream =
+                                                        context.contentResolver.openInputStream(uri)
+                                                            ?: throw Exception("inputStream is null")
+                                                    val tempFile = File(context.cacheDir, fName)
+
+                                                    tempFile.outputStream().use { output ->
+                                                        inputStream.copyTo(output)
+                                                    }
+                                                    return@withContext tempFile.absolutePath
+                                                }
+
+                                                val path = copyToCache(uri, fName)
+                                                val file = File(path)
+                                                val mediaMessage = MediaMessage(
+                                                    width = 0,
+                                                    height = 0,
+                                                    file = file,
+                                                    path = uri.toString(),
+                                                    mime = mime,
+                                                    isImage = FileUtils.isImage(mime),
+                                                    fileName = fName,
+                                                    fileSize = file.length(),
+                                                )
+                                                if (FileUtils.isImage(mediaMessage.mime) && mediaMessage.file.length() > 1024 * 1024 * 10) {
+                                                    Toast.makeText(
+                                                        context,
+                                                        uploadImageLimit,
+                                                        Toast.LENGTH_SHORT
+                                                    ).show()
+                                                    return@LaunchedEffect
+                                                }
+                                                if (!FileUtils.isImage(mediaMessage.mime) && mediaMessage.file.length() > 1024 * 1024 * 100) {
+                                                    Toast.makeText(
+                                                        context,
+                                                        uploadVideoLimit,
+                                                        Toast.LENGTH_SHORT
+                                                    ).show()
+                                                    return@LaunchedEffect
+                                                }
+                                                viewModel.preInsertUpload(mediaMessage)
+//                                                Log.d(
+//                                                    ChatScreenViewModel.FILE_SELECT,
+//                                                    "found file --->> ${file.name}, ${file.path}, ${file.length()}, ${file.absolutePath}, mimeType: $mime, Is image file: ${
+//                                                        FileUtils.isImage(
+//                                                            mime
+//                                                        )
+//                                                    }"
+//                                                )
+                                            } catch (e: Exception) {
+                                                e.printStackTrace()
                                             }
                                         }
                                     }
@@ -533,7 +570,8 @@ fun ChatScreen(
                                             modifier = Modifier.fillMaxWidth(),
                                             horizontalArrangement = Arrangement.SpaceBetween
                                         ) {
-                                            Surface(color = Color.White,
+                                            Surface(
+                                                color = Color.White,
                                                 modifier = Modifier
                                                     .size(24.dp)
                                                     .clip(CircleShape)
@@ -672,7 +710,8 @@ fun ChatScreen(
 
                                         val cannotSendEmptyMessage =
                                             stringResource(R.string.chat_session_status_23)
-                                        Image(painter = painterResource(R.drawable.send),
+                                        Image(
+                                            painter = painterResource(R.drawable.send),
                                             contentDescription = "Send Button",
                                             modifier = Modifier
                                                 .size(18.dp)
@@ -794,7 +833,8 @@ fun timeoutTips(viewModel: ChatScreenViewModel) {
 fun ToBottom(viewModel: ChatScreenViewModel, goToTop: () -> Unit) {
     val recivCount by viewModel.recivCount.collectAsState()
     Box(modifier = Modifier.fillMaxSize()) {
-        Surface(color = Color(0xff0054FC).copy(alpha = 0.15f),
+        Surface(
+            color = Color(0xff0054FC).copy(alpha = 0.15f),
             modifier = Modifier
                 .padding(bottom = 109.dp, end = 16.dp)
                 .clip(
@@ -998,7 +1038,7 @@ fun RecievedFromCustomerService(
                 }
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
-                    if(message.csAvatar is IconUrl){
+                    if (message.csAvatar is IconUrl) {
                         NormalDecryptedOrNotImageView(
                             key = (message.csAvatar as IconUrl).key,
                             url = (message.csAvatar as IconUrl).url,
@@ -1009,7 +1049,7 @@ fun RecievedFromCustomerService(
                             contentScale = ContentScale.Crop,
                             error = painterResource(id = if (message.senderUid.isEmpty()) R.drawable.robots_avatar else R.drawable.default_cs_avatar),
                         )
-                    }else{
+                    } else {
                         AsyncImage(
                             model = message.csAvatar,
                             contentDescription = "Yo",
@@ -1096,7 +1136,7 @@ fun UserInput(
                 Text(
                     text = ChatScreenViewModel.nickName.ifEmpty {
                         stringResource(
-                            if(ChatScreenViewModel.isGuest)  R.string.chat_session_status_15 else  R.string.chat_session_status_16,
+                            if (ChatScreenViewModel.isGuest) R.string.chat_session_status_15 else R.string.chat_session_status_16,
                             ChatScreenViewModel.nickId
                         )
                     },

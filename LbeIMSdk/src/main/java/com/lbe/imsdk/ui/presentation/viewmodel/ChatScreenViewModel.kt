@@ -40,6 +40,7 @@ import com.lbe.imsdk.model.req.HistoryBody
 import com.lbe.imsdk.model.req.InitMultiPartUploadBody
 import com.lbe.imsdk.model.req.MarkReadReqBody
 import com.lbe.imsdk.model.req.MsgBody
+import com.lbe.imsdk.model.req.Pagination
 import com.lbe.imsdk.model.req.Part
 import com.lbe.imsdk.model.req.SeqCondition
 import com.lbe.imsdk.model.req.SessionBody
@@ -65,7 +66,7 @@ import com.lbe.imsdk.utils.FileLogger
 import com.lbe.imsdk.utils.TimeUtils.timeStampGen
 import com.lbe.imsdk.utils.UUIDUtils.uuidGen
 import com.lbe.imsdk.utils.UploadBigFileUtils
-import com.lbe.imsdk.R
+import com.lbe.imsdk.model.resp.SessionEntry
 import com.tinder.scarlet.Message
 import com.tinder.scarlet.Scarlet
 import com.tinder.scarlet.WebSocket
@@ -119,6 +120,9 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         var lbeToken = ""
         var lbeSession = ""
         var seq: Int = 0
+        var sessionList: MutableList<SessionEntry> = mutableListOf()
+        var currentSession: SessionEntry? = null
+        var currentSessionIndex = 0
         var currentSessionTotalPages = 1
         var showPageSize = 20
         var currentPage = 1
@@ -276,6 +280,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
                 sdkInit = true
                 schedulePingJob()
             } catch (e: Exception) {
+                e.printStackTrace()
                 println("realInitSdk error: $e")
             }
         }
@@ -378,41 +383,56 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         if (!networkAvailable()) {
             return
         }
-        val result = safeApiCall {
-            imApiRepository?.fetchSessionList(
-                lbeToken = lbeToken, lbeIdentity = lbeIdentity, body = SessionListReq(
-                    sessionIDs = listOf(lbeSession)
+        try {
+            val result = safeApiCall {
+                imApiRepository?.fetchSessionList(
+                    lbeToken = lbeToken, lbeIdentity = lbeIdentity, body = SessionListReq(
+                        pagination = Pagination(
+                            pageNumber = 1, showNumber = 1000
+                        ), sessionType = 2
+                    )
                 )
-            )
-        }
-        result.onSuccess { sessionListRep ->
-            Log.d(RETROFIT, "会话列表: $sessionListRep")
-            val currentSession = sessionListRep?.data?.sessionList?.firstOrNull()
-            seq = currentSession?.latestMsg?.msgSeq ?: 0
-            remoteLastMsgType = currentSession?.latestMsg?.msgType ?: 0
-            checkNeedSyncRemote()
-            syncPageInfo()
-            filterLocalMessages()
-            scrollToBottom()
-            syncPendingJobs()
-        }.onFailure { err ->
-            Log.d(RETROFIT, "会话列表异常: $err")
+            }
+            result.onSuccess { sessionListRep ->
+                Log.d(RETROFIT, "会话列表: $sessionListRep")
+                if(sessionListRep?.data?.sessionList?.isEmpty() == true){
+                    return
+                }
+                sessionList.addAll(sessionListRep!!.data.sessionList)
+                currentSession = sessionList[currentSessionIndex]
+                seq = currentSession?.latestMsg?.msgSeq ?: 0
+                remoteLastMsgType = currentSession?.latestMsg?.msgType ?: 0
+                checkNeedSyncRemote()
+                syncPageInfo(currentSession)
+                filterLocalMessages()
+                scrollToBottom()
+                syncPendingJobs()
+            }.onFailure { err ->
+                Log.d(RETROFIT, "会话列表异常: $err")
+            }
+        }catch (e: Exception){
+            e.printStackTrace()
         }
     }
 
     fun loadHistory() {
+        if (currentSessionIndex >= sessionList.size - 1) {
+            return
+        }
+        currentSessionIndex += 1
+        currentSession = sessionList[currentSessionIndex]
         viewModelScope.launch(Dispatchers.IO) {
             checkNeedSyncRemote()
-//            syncPageInfo()
-//            filterLocalMessages()
+            syncPageInfo(currentSession)
+            filterLocalMessages()
         }
     }
 
-    private fun syncPageInfo() {
-        val cacheMessages = IMLocalRepository.filterMessages(lbeSession)
+    private fun syncPageInfo(currentSession: SessionEntry?) {
+        val cacheMessages = IMLocalRepository.filterMessages(currentSession?.sessionId ?: "")
         Log.d(
             REALM,
-            "syncPageInfo cacheMessages size---->>> ${cacheMessages.size}, currentSession: ${lbeSession}"
+            "syncPageInfo cacheMessages size---->>> ${cacheMessages.size}, currentSession: ${currentSession}"
         )
         if (cacheMessages.isNotEmpty()) {
             currentSessionTotalPages = Math.max(cacheMessages.size / showPageSize, 1)
@@ -428,18 +448,20 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     suspend fun checkNeedSyncRemote() {
-        val cacheMessages = IMLocalRepository.filterMessages(lbeSession)
+        val cacheMessages = IMLocalRepository.filterMessages(currentSession?.sessionId ?: "")
         Log.d(
             REALM,
             "checkNeedSyncRemote --->>> cache size: ${cacheMessages.size} |  remote lastSeq: $seq , remoteLastMsgType: $remoteLastMsgType"
         )
         if (cacheMessages.size < seq || seq == 0) {
-            fetchHistoryAndSync()
+            fetchHistoryAndSync(currentSession)
         }
     }
 
     private fun afterSendUpdateList() {
-        val cacheMessages = IMLocalRepository.filterMessages(lbeSession)
+        currentSessionIndex = 0
+        currentSession = sessionList[currentSessionIndex]
+        val cacheMessages = IMLocalRepository.filterMessages(currentSession?.sessionId ?: "")
         currentSessionTotalPages = cacheMessages.size / showPageSize
         currentPage = currentSessionTotalPages
         val subList = pagination(cacheMessages)
@@ -456,14 +478,16 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
-    fun filterLocalMessages() {
+    fun filterLocalMessages(
+        sid: String = currentSession?.sessionId ?: "",
+    ) {
         Log.d(
             REALM,
-            "分页 ---->>> ,sessionId: $lbeSession, currentSessionTotalPages: $currentSessionTotalPages, currentPage: $currentPage, seq: $seq"
+            "分页 ---->>> currentSessionIndex: $currentSessionIndex ,sessionId: $sid, currentSessionTotalPages: $currentSessionTotalPages, currentPage: $currentPage, seq: $seq"
         )
         if ((currentSessionTotalPages != 0 && currentPage > currentSessionTotalPages) || currentPage < 1) return
 
-        val cacheMessages = IMLocalRepository.filterMessages(lbeSession)
+        val cacheMessages = IMLocalRepository.filterMessages(sid)
         val subList = pagination(cacheMessages)
 
         viewModelScope.launch(Dispatchers.Main) {
@@ -484,7 +508,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         Log.d(REALM, "分页总页数: $currentSessionTotalPages, currentPage: $currentPage, 取余: $yu")
 
         val subList = if (currentPage == 1 && yu != 0) {
-            val start = ((currentPage - 1) * showPageSize).coerceAtLeast(0)
+            val start = Math.max((currentPage - 1) * showPageSize, 0)
             val end = Math.min(currentPage * showPageSize + yu, source.size)
             Log.d(REALM, "最后一页 --->>> currentPage: $currentPage, start: $start, end: $end")
             source.subList(start, end)
@@ -597,7 +621,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
-    private suspend fun fetchHistoryAndSync() {
+    private suspend fun fetchHistoryAndSync(currentSession: SessionEntry?) {
         if (!networkAvailable()) {
             return
         }
@@ -608,9 +632,9 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
                 lbeToken = lbeToken,
                 lbeIdentity = lbeIdentity,
                 body = HistoryBody(
-                    sessionId = lbeSession, seqCondition = SeqCondition(
+                    sessionId = currentSession?.sessionId ?: "", seqCondition = SeqCondition(
                         startSeq = 0,
-                        endSeq = seq.let { if (it <= 0) 100 else it }
+                        endSeq = currentSession?.latestMsg?.msgSeq ?: 0
                     )
                 )
             )
@@ -645,7 +669,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
                     }
                 }
             }
-            syncPageInfo()
+            syncPageInfo(currentSession)
         }.onFailure { err ->
             Log.d(RETROFIT, "会话历史异常: $err")
         }
@@ -653,7 +677,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
 
     private fun syncPendingJobs() {
         val pendingCache =
-            IMLocalRepository.findAllPendingUploadMediaMessages(lbeSession)
+            IMLocalRepository.findAllPendingUploadMediaMessages(currentSession?.sessionId ?: "")
         Log.d(
             REALM,
             "PendingJobs --->>> ${pendingCache.map { cache -> "${cache.clientMsgID} || ${cache.uploadTask?.progress} " }}"
@@ -746,7 +770,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
                         println("接收转人工系统消息 --->> remoteLastMsgType: $remoteLastMsgType ,receivedSeq: $receivedSeq, seq: $seq")
                         if (remoteLastMsgType == 1 || remoteLastMsgType == 2 || remoteLastMsgType == 3 || remoteLastMsgType == 8 || remoteLastMsgType == 9 || remoteLastMsgType == 10 || remoteLastMsgType == 12) {
                             if (receivedSeq - seq > 2) {
-                                fetchHistoryAndSync()
+                                fetchHistoryAndSync(sessionList[0])
                             }
                             seq = receivedSeq
                             recivCount.value += 1
@@ -876,6 +900,8 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         }
 
         if (endSession) {
+            sessionList.clear()
+            currentSessionIndex = 0
             viewModelScope.launch(Dispatchers.IO + coroutineExceptionHandler) {
                 createSession()
                 fetchSessionList()
@@ -905,6 +931,8 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
 
     private fun senMessageFromMedia(msgBody: MsgBody, preSend: () -> Unit) {
         if (endSession) {
+            sessionList.clear()
+            currentSessionIndex = 0
             viewModelScope.launch(Dispatchers.IO + coroutineExceptionHandler) {
                 createSession()
                 fetchSessionList()
@@ -1126,7 +1154,9 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         }
         viewModelScope.launch(Dispatchers.IO + coroutineExceptionHandler) {
             IMLocalRepository.insertMessage(entity)
-            syncPageInfo()
+            if (sessionList.isNotEmpty()) {
+                syncPageInfo(sessionList[0])
+            }
             if (updateUI) {
                 afterSendUpdateList()
                 scrollToBottom()

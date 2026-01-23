@@ -1,5 +1,11 @@
 package com.lbe.imsdk.model.req
 
 data class SessionListReq(
-   val sessionIDs:List<String>
+    val pagination: Pagination,
+    val sessionType: Long,
+)
+
+data class Pagination(
+    val pageNumber: Long,
+    val showNumber: Long,
 )

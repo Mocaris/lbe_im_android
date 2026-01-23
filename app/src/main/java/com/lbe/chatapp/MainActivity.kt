@@ -31,7 +31,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val context = LocalContext.current
             ChatAppTheme {
-                NickIdPrompt { nickId, nickName, lbeIdentity, lbeSign, phone, email, language, device, headerIcon, groupID ,domain->
+                NickIdPrompt { nickId, nickName, lbeIdentity, lbeSign, phone, email, language, device, headerIcon, groupID, domain ->
                     LbeSdk.init(
                         context = context,
                         lbeSign = lbeSign,
@@ -45,7 +45,7 @@ class MainActivity : ComponentActivity() {
                         headerIcon = headerIcon,
                         groupID = groupID,
                         source = "",
-                        domain = domain
+                        domain = domain,
                     )
                     finish()
                 }
@@ -67,13 +67,16 @@ fun NickIdPrompt(
         device: String,
         headerIcon: String,
         groupID: String,
-        domain: String
-    ) -> Unit
+        domain: String,
+    ) -> Unit,
 ) {
-    val domain = remember { mutableStateOf("") }
+    val domain = remember { mutableStateOf("https://4jlfe1imqsee.imsz.online") }
     // HermitK1
-    var nickId by remember { mutableStateOf("android001") }
-    var nickName by remember { mutableStateOf("android001") }
+    var nickId by remember { mutableStateOf("2710512892936197") }
+//    var nickId by remember { mutableStateOf("") }
+    var nickName by remember { mutableStateOf("5B5768D2") }
+//    var nickId by remember { mutableStateOf("android001") }
+//    var nickName by remember { mutableStateOf("android001") }
 
     // dev_my
 //    var lbeSign by remember { mutableStateOf("0x77ce23dc4033c7e3b6cd9ec78b5c1d365ac8f4076e443575bb918451b63614011c7da66897248caebdb466b6ccb832aa639b0ddc5fe2574915759bbd5710b7aa1c") }
@@ -84,8 +87,14 @@ fun NickIdPrompt(
 //    var lbeIdentity by remember { mutableStateOf("441zy52mn2yy") }
 
     // uat_test
-    var lbeSign by remember { mutableStateOf("0x4f227352cf96fab9e67064e08219a86cd398fdbb067aa53fc7ad49deb882a0ad49b1d073ae0b3f74d39d288f3cf3feab6f102c1993532e1239e2f48e4afb534b1c") }
-    var lbeIdentity by remember { mutableStateOf("46gytl9ojaft") }
+    var lbeSign by remember {
+        mutableStateOf(
+            "0x49ca5e1d651d4fbff606d0efb2800822699e17ef972708ccaf95f5c41eb4ce1b39d02d467fa3db27bd129dad648cbfe8cc5f34f4cf54fe933b78205d19b0a17a1c",
+        )
+    }
+    var lbeIdentity by remember { mutableStateOf("4jlfe1imqsee") }
+//    var lbeSign by remember { mutableStateOf("0x4f227352cf96fab9e67064e08219a86cd398fdbb067aa53fc7ad49deb882a0ad49b1d073ae0b3f74d39d288f3cf3feab6f102c1993532e1239e2f48e4afb534b1c") }
+//    var lbeIdentity by remember { mutableStateOf("46gytl9ojaft") }
 
     // test
 //    var lbeSign by remember { mutableStateOf("0x281d5af2a0b222d5e0b99773372c1a4b955fbde587de0b1fd3708586b92020dc3437f9fff59e4f24c6aaca2b8a44d1ff82638e131c6a2d2c35289624e89b11c61b") }
@@ -102,20 +111,23 @@ fun NickIdPrompt(
 
     var device by remember { mutableStateOf("") }
 
-    var headerIcon by remember { mutableStateOf("http://10.40.92.203:9910/openimttt/lbe_65f8d397953b979b4be0d098e8d4f5.jpg") }
+    var headerIcon by remember {
+        mutableStateOf("{\"url\":\"https://abpay-pub.s3.ap-northeast-1.amazonaws.com/1078_1724306513153.png\",\"key\":\"\"}")
+    }
 //    var headerIcon by remember { mutableStateOf("") }
 
-    var groupID by remember { mutableStateOf("") }
+    var groupID by remember { mutableStateOf("1003") }
 
 //    var source by remember { mutableStateOf("Android") }
 
     Card {
         LazyColumn(
-            modifier = Modifier
-                .padding(8.dp)
-                .fillMaxSize(),
+            modifier =
+                Modifier
+                    .padding(8.dp)
+                    .fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             item {
                 OutlinedTextField(
@@ -137,14 +149,16 @@ fun NickIdPrompt(
                 OutlinedTextField(
                     value = headerIcon,
                     onValueChange = { headerIcon = it },
-                    label = { Text(text = "avatar") }, readOnly = false,
+                    label = { Text(text = "avatar") },
+                    readOnly = false,
                 )
             }
             item {
                 OutlinedTextField(
                     value = lbeIdentity,
                     onValueChange = { lbeIdentity = it },
-                    label = { Text(text = "LbeIdentity") }, readOnly = false,
+                    label = { Text(text = "LbeIdentity") },
+                    readOnly = false,
                 )
             }
 
@@ -152,49 +166,56 @@ fun NickIdPrompt(
                 OutlinedTextField(
                     value = nickId,
                     onValueChange = { nickId = it },
-                    label = { Text(text = "NickId") }, readOnly = false,
+                    label = { Text(text = "NickId") },
+                    readOnly = false,
                 )
             }
             item {
                 OutlinedTextField(
                     value = nickName,
                     onValueChange = { nickName = it },
-                    label = { Text(text = "NickName") }, readOnly = false,
+                    label = { Text(text = "NickName") },
+                    readOnly = false,
                 )
             }
             item {
                 OutlinedTextField(
                     value = phone,
                     onValueChange = { phone = it },
-                    label = { Text(text = "phone") }, readOnly = false,
+                    label = { Text(text = "phone") },
+                    readOnly = false,
                 )
             }
             item {
                 OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
-                    label = { Text(text = "email") }, readOnly = false,
+                    label = { Text(text = "email") },
+                    readOnly = false,
                 )
             }
             item {
                 OutlinedTextField(
                     value = language,
                     onValueChange = { language = it },
-                    label = { Text(text = "language") }, readOnly = false,
+                    label = { Text(text = "language") },
+                    readOnly = false,
                 )
             }
             item {
                 OutlinedTextField(
                     value = device,
                     onValueChange = { device = it },
-                    label = { Text(text = "device") }, readOnly = false,
+                    label = { Text(text = "device") },
+                    readOnly = false,
                 )
             }
             item {
                 OutlinedTextField(
                     value = groupID,
                     onValueChange = { groupID = it },
-                    label = { Text(text = "groupID") }, readOnly = false,
+                    label = { Text(text = "groupID") },
+                    readOnly = false,
                 )
             }
 
@@ -211,7 +232,7 @@ fun NickIdPrompt(
                         device,
                         headerIcon,
                         groupID,
-                        domain.value
+                        domain.value,
                     )
                 }) {
                     Text(text = "Connect")

@@ -403,8 +403,8 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
     fun loadHistory() {
         viewModelScope.launch(Dispatchers.IO) {
             checkNeedSyncRemote()
-            syncPageInfo()
-            filterLocalMessages()
+//            syncPageInfo()
+//            filterLocalMessages()
         }
     }
 
@@ -461,7 +461,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
             REALM,
             "分页 ---->>> ,sessionId: $lbeSession, currentSessionTotalPages: $currentSessionTotalPages, currentPage: $currentPage, seq: $seq"
         )
-        if ((currentSessionTotalPages != 0 && currentPage >= currentSessionTotalPages) || currentPage < 1) return
+        if ((currentSessionTotalPages != 0 && currentPage > currentSessionTotalPages) || currentPage < 1) return
 
         val cacheMessages = IMLocalRepository.filterMessages(lbeSession)
         val subList = pagination(cacheMessages)

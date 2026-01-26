@@ -191,7 +191,7 @@ fun ChatScreen(
     val kickOfflineMessage = stringResource(R.string.chat_session_status_8)
 
     val context = LocalContext.current
-    val configuration = LocalConfiguration.current
+//    val configuration = LocalConfiguration.current
     val density = LocalDensity.current
 
     val uiState by viewModel.uiState.observeAsState(ChatScreenUiState())

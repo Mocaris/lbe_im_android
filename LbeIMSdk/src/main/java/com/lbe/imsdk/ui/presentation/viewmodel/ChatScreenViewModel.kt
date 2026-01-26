@@ -12,7 +12,6 @@ import android.net.Uri
 import android.os.Build
 import android.util.Log
 import android.widget.Toast
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.State
 import androidx.core.content.edit
 import androidx.core.net.toFile
@@ -1291,7 +1290,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
                                     delegate = buffer.array().toRequestBody(
                                         contentType = "application/octet-stream".toMediaTypeOrNull(),
                                         byteCount = buffer.array().size
-                                    ), listener = { bytesWritten, contentLength ->
+                                    ), listener = { bytesWritten, _ ->
                                         val totalProgress =
                                             (1.0 * (deltaSize + bytesWritten)) / it.mediaMessage.fileSize
 //                                        val currentBlockProgress =

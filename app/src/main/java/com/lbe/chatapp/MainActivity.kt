@@ -11,18 +11,12 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.lbe.imsdk.LbeSdk
-import com.lbe.imsdk.ui.presentation.viewmodel.ChatScreenViewModel.Companion.lbeIdentity
-import com.lbe.imsdk.ui.presentation.viewmodel.ChatScreenViewModel.Companion.lbeSign
 import com.lbe.imsdk.ui.theme.ChatAppTheme
 
 class MainActivity : ComponentActivity() {
@@ -72,7 +66,7 @@ fun NickIdPrompt(
 ) {
     val domain = remember { mutableStateOf("https://4jlfe1imqsee.imsz.online") }
     // HermitK1
-    var nickId by remember { mutableStateOf("2710512892936197") }
+    var nickId by remember { mutableStateOf("2710512892936198") }
 //    var nickId by remember { mutableStateOf("") }
     var nickName by remember { mutableStateOf("5B5768D2") }
 //    var nickId by remember { mutableStateOf("android001") }

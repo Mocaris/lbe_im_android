@@ -140,6 +140,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         val tempUploadInfos: MutableMap<String, TempUploadInfo> = mutableMapOf()
         var sdkInit: Boolean = false
         var endSession: Boolean = false
+        var isAnonymous: Boolean = false
     }
 
     private val jobs: MutableMap<String, Job> = mutableMapOf()
@@ -242,7 +243,9 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         lbeSign = args.lbeSign
         isGuest = args.nickId.isEmpty()
         nickId = args.nickId.ifEmpty {
-            sharedPreferences.getString("guest_nick_id", "") ?: ""
+            sharedPreferences.edit().putBoolean("needSaveNickId", true).apply()
+            isAnonymous = true
+            sharedPreferences.getString("anonymousNickId", "").toString()
         }
         nickName = args.nickName
         userAvatar = args.headerIcon
@@ -360,11 +363,10 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
             lbeToken = session!!.data.token
             lbeSession = session.data.sessionId
             uid = session.data.uid
-            if (nickId.isEmpty()) {
+            if (sharedPreferences.getBoolean("needSaveNickId", false)) {
                 nickId = session.data.nickId
-                sharedPreferences.edit {
-                    putString("guest_nick_id", nickId)
-                }
+                sharedPreferences.edit().putString("anonymousNickId", session.data.nickId).apply()
+                sharedPreferences.edit().putBoolean("needSaveNickId", false).apply()
             }
             endSession = false
         }.onFailure { error ->
@@ -453,7 +455,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
             REALM,
             "checkNeedSyncRemote --->>> cache size: ${cacheMessages.size} |  remote lastSeq: $seq , remoteLastMsgType: $remoteLastMsgType"
         )
-        if (cacheMessages.size < seq || seq == 0) {
+        if (cacheMessages.size < seq) {
             fetchHistoryAndSync(currentSession)
         }
     }

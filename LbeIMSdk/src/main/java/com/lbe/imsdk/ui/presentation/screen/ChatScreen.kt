@@ -244,8 +244,8 @@ fun ChatScreen(
 
     val isConnected by viewModel.isConnected.observeAsState(initial = true)
 
-    val screenHeightPx =
-        with(LocalDensity.current) { (configuration.screenHeightDp.dp - 155.dp).toPx() }
+//    val screenHeightPx =
+//        with(LocalDensity.current) { (configuration.screenHeightDp.dp - 155.dp).toPx() }
     var showToBottomButton by remember { mutableStateOf(false) }
     val toBottomEvent by viewModel.toBottom.collectAsState("")
     val previousToBottomEvent = rememberSaveable { mutableStateOf(toBottomEvent) }

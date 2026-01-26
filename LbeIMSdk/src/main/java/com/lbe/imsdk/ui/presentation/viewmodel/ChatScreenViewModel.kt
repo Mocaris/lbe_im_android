@@ -1006,7 +1006,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         }
 
         val entity = IMLocalRepository.findMsgByClientMsgId(clientMsgId)
-        var newClientMsgId = ""
+        var newClientMsgId: String
         if (entity != null) {
             val list = entity.clientMsgID.split("-").toMutableList()
             list.removeLastOrNull()
@@ -1068,7 +1068,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     fun upload(
-        message: MessageEntity, thumbBitmap: Bitmap, context: Context
+        message: MessageEntity, thumbBitmap: Bitmap
     ) {
         Log.d(UPLOAD, "upload file size---->>> ${message.localFile?.size}")
         if (!networkAvailable()) {
@@ -1294,8 +1294,8 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
                                     ), listener = { bytesWritten, contentLength ->
                                         val totalProgress =
                                             (1.0 * (deltaSize + bytesWritten)) / it.mediaMessage.fileSize
-                                        val currentBlockProgress =
-                                            (1.0 * bytesWritten) / contentLength
+//                                        val currentBlockProgress =
+//                                            (1.0 * bytesWritten) / contentLength
 
                                         val emitProgress = progressList[message.clientMsgID]
                                         if (emitProgress != null) {
@@ -1550,7 +1550,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
                             ), listener = { bytesWritten, contentLength ->
                                 val totalProgress =
                                     ((1.0 * (deltaSize + bytesWritten)) / message.localFile?.size!!)
-                                val currentTrunkProgress = (1.0 * bytesWritten) / contentLength
+//                                val currentTrunkProgress = (1.0 * bytesWritten) / contentLength
 
                                 val emitProgress = progressList[message.clientMsgID]
                                 if (emitProgress != null) {

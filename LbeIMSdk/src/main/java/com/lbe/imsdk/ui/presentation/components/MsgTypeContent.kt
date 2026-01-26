@@ -73,7 +73,7 @@ fun MsgTypeContent(
     val context = LocalContext.current
     val kickOffLine by viewModel.kickOffLine.collectAsState(false)
     val copySuccess = stringResource(R.string.chat_session_status_13)
-    val historyNotAvailable = stringResource(R.string.chat_session_status_27)
+//    val historyNotAvailable = stringResource(R.string.chat_session_status_27)
     val kickOfflineMessage = stringResource(R.string.chat_session_status_8)
 
     when (message.msgType) {
@@ -497,7 +497,7 @@ fun MsgTypeContent(
                                 }
 
                                 2 -> {
-                                    if (answerUnit.contents != null && answerUnit.contents.isNotEmpty()) {
+                                    if (answerUnit.contents.isNotEmpty()) {
                                         val linkTextType =
                                             object : TypeToken<MutableList<LinkText>>() {}.type
                                         val linkTexts = Gson().fromJson<MutableList<LinkText>>(

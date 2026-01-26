@@ -114,34 +114,35 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         const val IMAGE_ENCRYPTION = "Image Encryption"
         const val CONTINUE_UPLOAD = "CONTINUE_UPLOAD"
         const val RETROFIT = "Lbe Retrofit"
-        var lbeSign = ""
-        var uid = ""
-        var wssHost = ""
-        var lbeToken = ""
-        var lbeSession = ""
-        var seq: Int = 0
-        var sessionList: MutableList<SessionEntry> = mutableListOf()
-        var currentSession: SessionEntry? = null
-        var currentSessionIndex = 0
-        var currentSessionTotalPages = 1
-        var showPageSize = 20
-        var currentPage = 1
-        var remoteLastMsgType = -1
-
-        //游客
-        var isGuest = false
-        var nickId: String = ""
-        var nickName: String = ""
-
-        // url String / [IconUrl]
-        var userAvatar: Any? = null
-        var lbeIdentity: String = ""
-        var progressList: MutableMap<String, MutableStateFlow<Float>> = mutableMapOf()
-        val tempUploadInfos: MutableMap<String, TempUploadInfo> = mutableMapOf()
-        var sdkInit: Boolean = false
-        var endSession: Boolean = false
-        var isAnonymous: Boolean = false
     }
+
+    var lbeSign = ""
+    var uid = ""
+    var wssHost = ""
+    var lbeToken = ""
+    var lbeSession = ""
+    var seq: Int = 0
+    var sessionList: MutableList<SessionEntry> = mutableListOf()
+    var currentSession: SessionEntry? = null
+    var currentSessionIndex = 0
+    var currentSessionTotalPages = 1
+    var showPageSize = 20
+    var currentPage = 1
+    var remoteLastMsgType = -1
+
+    //游客
+    var isGuest = false
+    var nickId: String = ""
+    var nickName: String = ""
+
+    // url String / [IconUrl]
+    var userAvatar: Any? = null
+    var lbeIdentity: String = ""
+    var progressList: MutableMap<String, MutableStateFlow<Float>> = mutableMapOf()
+    val tempUploadInfos: MutableMap<String, TempUploadInfo> = mutableMapOf()
+    var sdkInit: Boolean = false
+    var endSession: Boolean = false
+    var isAnonymous: Boolean = false
 
     private val jobs: MutableMap<String, Job> = mutableMapOf()
     private val mergeMultiUploadReqQueue: MutableMap<String, CompleteMultiPartUploadReq> =

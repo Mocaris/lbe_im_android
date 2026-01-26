@@ -264,8 +264,8 @@ fun ChatScreen(
         lifecycleOwner.lifecycle.addObserver(object : LifecycleEventObserver {
             override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
                 if (event == Lifecycle.Event.ON_RESUME) {
-                    println("LbeChat Lifecycle --->> ChatScreen ON_RESUME: ${ChatScreenViewModel.sdkInit}")
-                    if (ChatScreenViewModel.sdkInit) {
+                    println("LbeChat Lifecycle --->> ChatScreen ON_RESUME: ${viewModel.sdkInit}")
+                    if (viewModel.sdkInit) {
                         coroutineScope.launch {
                             viewModel.checkNeedSyncRemote()
                         }
@@ -351,8 +351,8 @@ fun ChatScreen(
                     isRefreshing = isRefreshing.value,
                     onRefresh = {
                         isRefreshing.value = true
-                        if (ChatScreenViewModel.currentPage > 1) {
-                            ChatScreenViewModel.currentPage -= 1
+                        if (viewModel.currentPage > 1) {
+                            viewModel.currentPage -= 1
                             viewModel.filterLocalMessages()
                         } else {
                             viewModel.loadHistory()
@@ -374,7 +374,7 @@ fun ChatScreen(
                             MessageItem(
                                 uiState.messages,
                                 message = message,
-                                if (message.senderUid == ChatScreenViewModel.uid) MessagePosition.RIGHT
+                                if (message.senderUid == viewModel.uid) MessagePosition.RIGHT
                                 else MessagePosition.LEFT,
                                 viewModel,
                                 navController,
@@ -386,7 +386,7 @@ fun ChatScreen(
                             LaunchedEffect(uiState.messages) {
                                 if (index <= uiState.messages.size - 1) {
                                     val visitAbleMsg = uiState.messages[index]
-                                    if (!visitAbleMsg.readed && visitAbleMsg.senderUid != ChatScreenViewModel.uid) {
+                                    if (!visitAbleMsg.readed && visitAbleMsg.senderUid != viewModel.uid) {
                                         viewModel.markRead(message)
                                     }
                                 }
@@ -1138,10 +1138,10 @@ fun UserInput(
                     .padding(8.dp),
             ) {
                 Text(
-                    text = ChatScreenViewModel.nickName.ifEmpty {
+                    text = viewModel.nickName.ifEmpty {
                         stringResource(
-                            if (ChatScreenViewModel.isGuest) R.string.chat_session_status_15 else R.string.chat_session_status_16,
-                            ChatScreenViewModel.nickId
+                            if (viewModel.isGuest) R.string.chat_session_status_15 else R.string.chat_session_status_16,
+                            viewModel.nickId
                         )
                     },
                     modifier = Modifier.align(if (messagePosition == MessagePosition.LEFT) Alignment.Start else Alignment.End),
@@ -1152,7 +1152,7 @@ fun UserInput(
                 Spacer(Modifier.height(8.dp))
                 MsgTypeContent(message, viewModel, navController, true, imageLoader)
             }
-            val iconUrl = ChatScreenViewModel.userAvatar
+            val iconUrl = viewModel.userAvatar
             if (null != iconUrl) {
                 if (iconUrl is IconUrl) {
                     NormalDecryptedOrNotImageView(
@@ -1167,7 +1167,7 @@ fun UserInput(
                     )
                 } else {
                     AsyncImage(
-                        model = ChatScreenViewModel.userAvatar,
+                        model = viewModel.userAvatar,
                         contentDescription = "Yo",
                         contentScale = ContentScale.Crop,
                         modifier = Modifier

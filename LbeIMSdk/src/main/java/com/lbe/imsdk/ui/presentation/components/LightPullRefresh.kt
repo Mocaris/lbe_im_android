@@ -54,7 +54,7 @@ fun LightPullToRefreshList(
         indicator = {
             Box(
                 modifier =
-                modifier.pullToRefreshIndicator(
+                    Modifier.pullToRefreshIndicator(
                     state = state,
                     isRefreshing = isRefreshing,
                     containerColor = Color.Transparent,

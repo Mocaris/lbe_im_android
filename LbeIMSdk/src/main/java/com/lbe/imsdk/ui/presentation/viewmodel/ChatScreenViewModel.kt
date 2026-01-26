@@ -395,7 +395,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
             }
             result.onSuccess { sessionListRep ->
                 Log.d(RETROFIT, "会话列表: $sessionListRep")
-                if(sessionListRep?.data?.sessionList?.isEmpty() == true){
+                if (sessionListRep?.data?.sessionList?.isEmpty() == true) {
                     return
                 }
                 sessionList.addAll(sessionListRep!!.data.sessionList)
@@ -410,7 +410,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
             }.onFailure { err ->
                 Log.d(RETROFIT, "会话列表异常: $err")
             }
-        }catch (e: Exception){
+        } catch (e: Exception) {
             e.printStackTrace()
         }
     }
@@ -466,9 +466,11 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         currentPage = currentSessionTotalPages
         val subList = pagination(cacheMessages)
         viewModelScope.launch(Dispatchers.Main) {
-            val messages = uiState.value?.messages?.toMutableList()
-            messages?.clear()
-            messages?.addAll(subList)
+            val messages = uiState.value?.messages?.toMutableList()?.also {
+                it.clear()
+                it.addAll(subList)
+                it.sortBy { t -> t.sendTime }
+            }
             allMessageSize = messages?.size ?: 0
             _uiState.postValue(messages?.let { _uiState.value?.copy(messages = it) })
             Log.d(
@@ -491,8 +493,10 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         val subList = pagination(cacheMessages)
 
         viewModelScope.launch(Dispatchers.Main) {
-            val messages = uiState.value?.messages?.toMutableList()
-            messages?.addAll(0, subList)
+            val messages = uiState.value?.messages?.toMutableList()?.also {
+                it.addAll(0, subList)
+                it.sortBy { t -> t.sendTime }
+            }
             allMessageSize = messages?.size ?: 0
             _uiState.postValue(messages?.let { _uiState.value?.copy(messages = it) })
             Log.d(

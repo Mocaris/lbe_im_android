@@ -135,7 +135,7 @@ fun ThumbDecryptedOrNotImageView(
                                 "ThumbnailGen",
                                 "bitmap --->> width: ${bitmap.width}, height: ${bitmap.height}"
                             )
-                            viewModel?.upload(message, bitmap, context)
+                            viewModel?.upload(message, bitmap)
                         }
                     }
                 },

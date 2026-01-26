@@ -114,12 +114,12 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         const val IMAGE_ENCRYPTION = "Image Encryption"
         const val CONTINUE_UPLOAD = "CONTINUE_UPLOAD"
         const val RETROFIT = "Lbe Retrofit"
+        var lbeToken = ""
+        var lbeSign = ""
     }
 
-    var lbeSign = ""
     var uid = ""
     var wssHost = ""
-    var lbeToken = ""
     var lbeSession = ""
     var seq: Int = 0
     var sessionList: MutableList<SessionEntry> = mutableListOf()
@@ -785,7 +785,10 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
                         Log.d(
                             TAG, "收到消息 --->> seq: $seq, remoteLastMsgType: $remoteLastMsgType"
                         )
-                        val entity = protoToEntity(msgEntity)
+                        val entity = protoToEntity(
+                            lbeSession,
+                            msgEntity
+                        )
                         println("接收转人工系统消息 --->>> $entity")
 
                         lastCsMessage = entity
@@ -1155,7 +1158,12 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
     private fun insertCacheMaybeUpdateUI(
         sendBody: MsgBody, localFile: LocalMediaFile?, updateUI: Boolean = true
     ): MessageEntity {
-        val entity = sendBodyToEntity(sendBody)
+        val entity = sendBodyToEntity(
+            lbeSession,
+            uid,
+            seq,
+            sendBody
+        )
         if (localFile != null) {
             entity.localFile = localFile
         }

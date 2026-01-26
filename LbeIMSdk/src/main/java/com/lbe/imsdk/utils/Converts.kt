@@ -4,16 +4,17 @@ import android.util.Log
 import com.lbe.imsdk.model.MessageEntity
 import com.lbe.imsdk.model.proto.IMMsg
 import com.lbe.imsdk.model.req.MsgBody
-import com.lbe.imsdk.ui.presentation.viewmodel.ChatScreenViewModel.Companion.lbeSession
-import com.lbe.imsdk.ui.presentation.viewmodel.ChatScreenViewModel.Companion.seq
-import com.lbe.imsdk.ui.presentation.viewmodel.ChatScreenViewModel.Companion.uid
 
 object Converts {
 
-    fun sendBodyToEntity(body: MsgBody): MessageEntity {
+    fun sendBodyToEntity(
+        lbeSession:String,
+        sUid:String,
+        seq:Int,
+        body: MsgBody): MessageEntity {
         val entity = MessageEntity().apply {
             sessionId = lbeSession
-            senderUid = uid
+            senderUid = sUid
             msgBody = body.msgBody
             msgType = body.msgType
             clientMsgID = body.clientMsgId
@@ -47,7 +48,9 @@ object Converts {
         return convertMsgType
     }
 
-    fun protoToEntity(proto: IMMsg.MsgEntityToFrontEnd): MessageEntity {
+    fun protoToEntity(
+        lbeSession:String,
+        proto: IMMsg.MsgEntityToFrontEnd): MessageEntity {
         val loadMsgType = protoTypeConvert(proto)
 
         val entity = MessageEntity().apply {

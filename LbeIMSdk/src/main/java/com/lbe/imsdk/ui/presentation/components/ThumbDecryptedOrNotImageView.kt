@@ -50,7 +50,7 @@ import java.io.File
 fun ThumbDecryptedOrNotImageView(
     navController: NavController,
     message: MessageEntity,
-    viewModel: ChatScreenViewModel?,
+    viewModel: ChatScreenViewModel,
     imageLoader: ImageLoader
 ) {
     var thumbUrl = ""
@@ -71,7 +71,7 @@ fun ThumbDecryptedOrNotImageView(
         println("DecryptedOrNotImageView Json parse error -->> ${message.msgBody}")
     }
 
-    val rememberProgress = remember { ChatScreenViewModel.progressList[message.clientMsgID] }
+    val rememberProgress = remember { viewModel.progressList[message.clientMsgID] }
     val progress = rememberProgress?.collectAsState()
     val isGif = FileUtils.isGif(message.localFile?.mimeType ?: "") || FileUtils.isGif(fullUrl)
 

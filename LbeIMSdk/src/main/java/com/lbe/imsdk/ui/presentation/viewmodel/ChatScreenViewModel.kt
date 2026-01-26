@@ -113,33 +113,35 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         const val IMAGE_ENCRYPTION = "Image Encryption"
         const val CONTINUE_UPLOAD = "CONTINUE_UPLOAD"
         const val RETROFIT = "Lbe Retrofit"
-        var lbeSign = ""
-        var uid = ""
-        var wssHost = ""
         var lbeToken = ""
-        var lbeSession = ""
-        var seq: Int = 0
-        var sessionList: MutableList<SessionEntry> = mutableListOf()
-        var currentSession: SessionEntry? = null
-        var currentSessionIndex = 0
-        var currentSessionTotalPages = 1
-        var showPageSize = 20
-        var currentPage = 1
-        var remoteLastMsgType = -1
-
-        //游客
-        var isGuest = false
-        var nickId: String = ""
-        var nickName: String = ""
-
-        // url String / [IconUrl]
-        var userAvatar: Any? = null
-        var lbeIdentity: String = ""
-        var progressList: MutableMap<String, MutableStateFlow<Float>> = mutableMapOf()
-        val tempUploadInfos: MutableMap<String, TempUploadInfo> = mutableMapOf()
-        var sdkInit: Boolean = false
-        var endSession: Boolean = false
+        var lbeSign = ""
     }
+
+    var uid = ""
+    var wssHost = ""
+    var lbeSession = ""
+    var seq: Int = 0
+    var sessionList: MutableList<SessionEntry> = mutableListOf()
+    var currentSession: SessionEntry? = null
+    var currentSessionIndex = 0
+    var currentSessionTotalPages = 1
+    var showPageSize = 20
+    var currentPage = 1
+    var remoteLastMsgType = -1
+
+    //游客
+    var isGuest = false
+    var nickId: String = ""
+    var nickName: String = ""
+
+    // url String / [IconUrl]
+    var userAvatar: Any? = null
+    var lbeIdentity: String = ""
+    var progressList: MutableMap<String, MutableStateFlow<Float>> = mutableMapOf()
+    val tempUploadInfos: MutableMap<String, TempUploadInfo> = mutableMapOf()
+    var sdkInit: Boolean = false
+    var endSession: Boolean = false
+    var isAnonymous: Boolean = false
 
     private val jobs: MutableMap<String, Job> = mutableMapOf()
     private val mergeMultiUploadReqQueue: MutableMap<String, CompleteMultiPartUploadReq> =
@@ -241,7 +243,9 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         lbeSign = args.lbeSign
         isGuest = args.nickId.isEmpty()
         nickId = args.nickId.ifEmpty {
-            sharedPreferences.getString("guest_nick_id", "") ?: ""
+            sharedPreferences.edit().putBoolean("needSaveNickId", true).apply()
+            isAnonymous = true
+            sharedPreferences.getString("anonymousNickId", "").toString()
         }
         nickName = args.nickName
         userAvatar = args.headerIcon
@@ -359,11 +363,10 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
             lbeToken = session!!.data.token
             lbeSession = session.data.sessionId
             uid = session.data.uid
-            if (nickId.isEmpty()) {
+            if (sharedPreferences.getBoolean("needSaveNickId", false)) {
                 nickId = session.data.nickId
-                sharedPreferences.edit {
-                    putString("guest_nick_id", nickId)
-                }
+                sharedPreferences.edit().putString("anonymousNickId", session.data.nickId).apply()
+                sharedPreferences.edit().putBoolean("needSaveNickId", false).apply()
             }
             endSession = false
         }.onFailure { error ->
@@ -452,7 +455,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
             REALM,
             "checkNeedSyncRemote --->>> cache size: ${cacheMessages.size} |  remote lastSeq: $seq , remoteLastMsgType: $remoteLastMsgType"
         )
-        if (cacheMessages.size < seq || seq == 0) {
+        if (cacheMessages.size < seq) {
             fetchHistoryAndSync(currentSession)
         }
     }
@@ -781,7 +784,10 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
                         Log.d(
                             TAG, "收到消息 --->> seq: $seq, remoteLastMsgType: $remoteLastMsgType"
                         )
-                        val entity = protoToEntity(msgEntity)
+                        val entity = protoToEntity(
+                            lbeSession,
+                            msgEntity
+                        )
                         println("接收转人工系统消息 --->>> $entity")
 
                         lastCsMessage = entity
@@ -1151,7 +1157,12 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
     private fun insertCacheMaybeUpdateUI(
         sendBody: MsgBody, localFile: LocalMediaFile?, updateUI: Boolean = true
     ): MessageEntity {
-        val entity = sendBodyToEntity(sendBody)
+        val entity = sendBodyToEntity(
+            lbeSession,
+            uid,
+            seq,
+            sendBody
+        )
         if (localFile != null) {
             entity.localFile = localFile
         }

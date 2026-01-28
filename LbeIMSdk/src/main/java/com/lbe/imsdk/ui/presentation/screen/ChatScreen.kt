@@ -513,7 +513,7 @@ fun ChatScreen(
                                                     width = 0,
                                                     height = 0,
                                                     file = file,
-                                                    path = uri.toString(),
+                                                    path = path,
                                                     mime = mime,
                                                     isImage = FileUtils.isImage(mime),
                                                     fileName = fName,

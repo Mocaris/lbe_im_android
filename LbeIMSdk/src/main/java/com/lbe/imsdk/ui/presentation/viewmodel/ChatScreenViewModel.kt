@@ -1041,8 +1041,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     private fun genTempUploadInfo(message: MessageEntity): TempUploadInfo {
-        val uri = Uri.parse(message.localFile?.path ?: "")
-        val file = uri.toFile()
+        val file = File(message.localFile?.path?:"")
         return TempUploadInfo(
             sendBody = entityToMediaSendBody(message), mediaMessage = MediaMessage(
                 fileName = message.localFile?.fileName ?: "",

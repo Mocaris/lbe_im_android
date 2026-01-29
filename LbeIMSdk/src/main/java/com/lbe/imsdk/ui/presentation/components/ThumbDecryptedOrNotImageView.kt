@@ -103,17 +103,18 @@ fun ThumbDecryptedOrNotImageView(
                                 CONTINUE_UPLOAD,
                                 "续传 executeIndex: ${message.uploadTask?.executeIndex}"
                             )
-                            val uri = Uri.parse(message.localFile?.path)
-                            val cr = ctx.contentResolver
-                            val projection = arrayOf(MediaStore.MediaColumns.DATA)
-                            val metaCursor = cr.query(uri, projection, null, null, null)
-                            metaCursor?.use { mCursor ->
-                                if (mCursor.moveToFirst()) {
-                                    val path = mCursor.getString(0)
-                                    val file = File(path)
-                                    viewModel?.continueSplitTrunksUpload(message, file, ctx)
-                                }
-                            }
+                            viewModel.continueSplitTrunksUpload(message, File(message.localFile!!.path), ctx)
+//                            val uri = Uri.parse(message.localFile?.path)
+//                            val cr = ctx.contentResolver
+//                            val projection = arrayOf(MediaStore.MediaColumns.DATA)
+//                            val metaCursor = cr.query(uri, projection, null, null, null)
+//                            metaCursor?.use { mCursor ->
+//                                if (mCursor.moveToFirst()) {
+//                                    val path = mCursor.getString(0)
+//                                    val file = File(path)
+//                                    viewModel?.continueSplitTrunksUpload(message, file, ctx)
+//                                }
+//                            }
                         }
                     }
                 }

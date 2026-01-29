@@ -63,7 +63,7 @@ import com.google.gson.Gson
 import com.lbe.imsdk.R
 import com.lbe.imsdk.model.MediaMessage
 import com.lbe.imsdk.model.MessageEntity
-import com.lbe.imsdk.model.req.CustomMessageType
+import com.lbe.imsdk.model.proto.IMMsg
 import com.lbe.imsdk.model.resp.CsJoinInfo
 import com.lbe.imsdk.model.resp.IconUrl
 import com.lbe.imsdk.model.resp.RankingContent
@@ -494,35 +494,35 @@ fun ChatScreen(
                                                 return@withContext tempFile.absolutePath
                                             }
 
-                                                val path = copyToCache(uri, fName)
-                                                val file = File(path)
-                                                val mediaMessage = MediaMessage(
-                                                    width = 0,
-                                                    height = 0,
-                                                    file = file,
-                                                    path = path,
-                                                    mime = mime,
-                                                    isImage = FileUtils.isImage(mime),
-                                                    fileName = fName,
-                                                    fileSize = file.length(),
-                                                )
-                                                if (FileUtils.isImage(mediaMessage.mime) && mediaMessage.file.length() > 1024 * 1024 * 10) {
-                                                    Toast.makeText(
-                                                        context,
-                                                        uploadImageLimit,
-                                                        Toast.LENGTH_SHORT
-                                                    ).show()
-                                                    return@LaunchedEffect
-                                                }
-                                                if (!FileUtils.isImage(mediaMessage.mime) && mediaMessage.file.length() > 1024 * 1024 * 100) {
-                                                    Toast.makeText(
-                                                        context,
-                                                        uploadVideoLimit,
-                                                        Toast.LENGTH_SHORT
-                                                    ).show()
-                                                    return@LaunchedEffect
-                                                }
-                                                viewModel.preInsertUpload(mediaMessage)
+                                            val path = copyToCache(uri, fName)
+                                            val file = File(path)
+                                            val mediaMessage = MediaMessage(
+                                                width = 0,
+                                                height = 0,
+                                                file = file,
+                                                path = path,
+                                                mime = mime,
+                                                isImage = FileUtils.isImage(mime),
+                                                fileName = fName,
+                                                fileSize = file.length(),
+                                            )
+                                            if (FileUtils.isImage(mediaMessage.mime) && mediaMessage.file.length() > 1024 * 1024 * 10) {
+                                                Toast.makeText(
+                                                    context,
+                                                    uploadImageLimit,
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                                return@LaunchedEffect
+                                            }
+                                            if (!FileUtils.isImage(mediaMessage.mime) && mediaMessage.file.length() > 1024 * 1024 * 100) {
+                                                Toast.makeText(
+                                                    context,
+                                                    uploadVideoLimit,
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                                return@LaunchedEffect
+                                            }
+                                            viewModel.preInsertUpload(mediaMessage)
 //                                                Log.d(
 //                                                    ChatScreenViewModel.FILE_SELECT,
 //                                                    "found file --->> ${file.name}, ${file.path}, ${file.length()}, ${file.absolutePath}, mimeType: $mime, Is image file: ${
@@ -941,7 +941,7 @@ fun MessageItem(
             SystemMessageContent(content)
         }
 
-        CustomMessageType.TYPE_TIME_OUT_REPLY -> {
+        IMMsg.ContentType.AnswerMsgTimeoutContentType_VALUE -> {
             SystemMessageContent(stringResource(R.string.chat_session_status_3, viewModel.timeOut))
         }
 

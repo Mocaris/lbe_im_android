@@ -858,10 +858,10 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
 
     /// 超时处理，只保留在本地
     fun generateLocalTimeOutMessage() {
-        viewModelScope.launch(Dispatchers.IO) {
-            val sendBody = genMsgBody(type = CustomMessageType.TYPE_TIME_OUT_REPLY, msgBody = "")
-            insertCacheMaybeUpdateUI(sendBody, localFile = null, updateUI = false)
-        }
+//        viewModelScope.launch(Dispatchers.IO) {
+//            val sendBody = genMsgBody(type = CustomMessageType.TYPE_TIME_OUT_REPLY, msgBody = "")
+//            insertCacheMaybeUpdateUI(sendBody, localFile = null, updateUI = false)
+//        }
     }
 
     private fun updateConnectionStatus(connectionStatus: ConnectionStatus) {

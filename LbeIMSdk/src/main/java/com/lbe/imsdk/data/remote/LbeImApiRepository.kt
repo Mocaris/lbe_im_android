@@ -8,7 +8,7 @@ import okhttp3.logging.*
 import retrofit2.*
 import retrofit2.converter.gson.*
 
-class LbeImApiRepository(private val imBaseUrl:String) {
+class LbeImApiRepository(private val imBaseUrl: String) {
 //    private val lbeIMRepository = RetrofitInstance.imApiService
 
     val imApiService: LbeIMAPiService by lazy {
@@ -83,6 +83,21 @@ class LbeImApiRepository(private val imBaseUrl:String) {
             lbeToken = lbeToken,
             lbeIdentity = lbeIdentity,
             lbeSession = lbeSession
+        )
+    }
+    suspend fun endSession(
+        lbeSign: String,
+        lbeToken: String,
+        lbeIdentity: String,
+        lbeSession: String,
+        body: SessionIdBody
+    ) {
+        imApiService.endSession(
+            lbeSign = lbeSign,
+            lbeToken = lbeToken,
+            lbeIdentity = lbeIdentity,
+            lbeSession = lbeSession,
+            body = body
         )
     }
 }

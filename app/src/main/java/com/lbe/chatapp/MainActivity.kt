@@ -66,7 +66,7 @@ fun NickIdPrompt(
 ) {
     val domain = remember { mutableStateOf("https://4jlfe1imqsee.imsz.online") }
     // HermitK1
-    var nickId by remember { mutableStateOf("2710512892936198") }
+    var nickId by remember { mutableStateOf("2710512892936195") }
 //    var nickId by remember { mutableStateOf("") }
     var nickName by remember { mutableStateOf("5B5768D2") }
 //    var nickId by remember { mutableStateOf("android001") }

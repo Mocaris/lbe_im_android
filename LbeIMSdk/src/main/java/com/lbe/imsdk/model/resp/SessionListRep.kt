@@ -26,6 +26,8 @@ data class SessionEntry(
     val latestMsg: LatestMsg?,
     val createTime: Long = 0,
     var sync: Boolean = false,
+    //// 0-排队 1-开始 2-结束
+    val status: Int = -1,
 )
 
 data class LatestMsg(

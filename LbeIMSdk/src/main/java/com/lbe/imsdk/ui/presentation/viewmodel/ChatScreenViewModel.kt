@@ -128,10 +128,10 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
     var recived = MutableStateFlow("")
     var lastCsMessage: MessageEntity? = null
 
-    var isTimeOut = MutableStateFlow(false)
-    var timeOutConfigOpen = MutableStateFlow(false)
-    var timeOutTimer: Timer? = null
-    var timeOut: Long = 5
+//    var isTimeOut = MutableStateFlow(false)
+//    var timeOutConfigOpen = MutableStateFlow(false)
+//    var timeOutTimer: Timer? = null
+//    var timeOut: Long = 5
 
     var kickOfflineEvent = MutableStateFlow(value = "")
     var kickOffLine = MutableStateFlow(false)
@@ -187,22 +187,22 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
 
     override fun onCleared() {
         networkMonitor.stopMonitoring()
-        disConnection()
+//        disConnection()
         println("LbeChat Lifecycle --->> ChatScreenViewModel onCleared")
         super.onCleared()
     }
 
-    private fun disConnection() {
-        if (sdkInit) {
-            Log.d(TAG, "websocket disConnectionSdk")
-            sdkInit = false
-            wsSubs?.dispose()
-            okHttpClient.dispatcher.executorService.shutdown()
-            jobs["sdkJob"]?.cancel()
-            pingTimer?.cancel()
-            pingTimer = null
-        }
-    }
+//    private fun disConnection() {
+//        if (sdkInit) {
+//            Log.d(TAG, "websocket disConnectionSdk")
+//            sdkInit = false
+//            wsSubs?.dispose()
+//            okHttpClient.dispatcher.executorService.shutdown()
+//            jobs["sdkJob"]?.cancel()
+//            pingTimer?.cancel()
+//            pingTimer = null
+//        }
+//    }
 
 //    private fun testOfflineTakeByCache() {
 //        currentSession = SessionEntry(sessionId = "cn-43ro83fqqzm2", latestMsg = null)
@@ -253,7 +253,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
                 createSession()
                 fetchSessionList()
                 observerConnection()
-                fetchTimeoutConfig()
+//                fetchTimeoutConfig()
                 faq(faqReqBody = FaqReqBody(faqType = 0, id = ""))
                 sdkInit = true
                 schedulePingJob()
@@ -264,6 +264,20 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         }
         jobs["sdkJob"] = sdkJob
     }
+
+//    private fun reCreateSession() {
+//        viewModelScope.launch(Dispatchers.IO + coroutineExceptionHandler) {
+//            try {
+//                createSession()
+//                fetchSessionList()
+//                observerConnection()
+//                schedulePingJob()
+//                faq(faqReqBody = FaqReqBody(faqType = 0, id = ""))
+//            } catch (e: Exception) {
+//                e.printStackTrace()
+//            }
+//        }
+//    }
 
     private fun networkAvailable(): Boolean {
         return networkMonitor.isNetworkAvailable()
@@ -297,13 +311,15 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
             imApiRepository = LbeImApiRepository(imBaseUrl)
             ossApiRepository = LbeOssApiRepository(ossBaseUrl)
         }.onFailure { err ->
-            Toast
-                .makeText(
-                    getApplication(),
-                    err.message,
-                    Toast.LENGTH_SHORT
-                )
-                .show()
+            withContext(Dispatchers.Main) {
+                Toast
+                    .makeText(
+                        getApplication(),
+                        err.message,
+                        Toast.LENGTH_SHORT
+                    )
+                    .show()
+            }
             Log.d(RETROFIT, "获取配置异常: $err")
         }
     }
@@ -345,13 +361,15 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
             }
             endSession = false
         }.onFailure { error ->
-            Toast
-                .makeText(
-                    getApplication(),
-                    error.message,
-                    Toast.LENGTH_SHORT
-                )
-                .show()
+            withContext(Dispatchers.Main) {
+                Toast
+                    .makeText(
+                        getApplication(),
+                        error.message,
+                        Toast.LENGTH_SHORT
+                    )
+                    .show()
+            }
             Log.d(RETROFIT, "创建会话异常: $error")
         }
     }
@@ -379,6 +397,9 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
                 currentSession = sessionList[currentSessionIndex]
                 seq = currentSession?.latestMsg?.msgSeq ?: 0
                 remoteLastMsgType = currentSession?.latestMsg?.msgType ?: 0
+                turnCustomServiceState.value =
+                    sessionListRep.data.sessionList.firstOrNull { it.sessionId == lbeSession }?.status?.let { it == 1 }
+                        ?: false
                 checkNeedSyncRemote()
                 syncPageInfo(currentSession)
                 filterLocalMessages()
@@ -518,25 +539,25 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
-    private suspend fun fetchTimeoutConfig() {
-        if (!networkAvailable()) {
-            return
-        }
-        val result = safeApiCall {
-            imApiRepository?.fetchTimeoutConfig(
-                lbeSign = lbeSign,
-                lbeToken = lbeToken,
-                lbeIdentity = lbeIdentity,
-            )
-        }
-        result.onSuccess { timeoutConfig ->
-            timeOut = timeoutConfig!!.data.timeout
-            timeOutConfigOpen.update { timeoutConfig.data.isOpen }
-            Log.d(REALM, "FetchTimeoutConfig ---->>> $timeoutConfig, timeOut: $timeOut")
-        }.onFailure { err ->
-            println("网络异常 --->>> FetchTimeoutConfig error --->>>  $err")
-        }
-    }
+//    private suspend fun fetchTimeoutConfig() {
+//        if (!networkAvailable()) {
+//            return
+//        }
+//        val result = safeApiCall {
+//            imApiRepository?.fetchTimeoutConfig(
+//                lbeSign = lbeSign,
+//                lbeToken = lbeToken,
+//                lbeIdentity = lbeIdentity,
+//            )
+//        }
+//        result.onSuccess { timeoutConfig ->
+//            timeOut = timeoutConfig!!.data.timeout
+//            timeOutConfigOpen.update { timeoutConfig.data.isOpen }
+//            Log.d(REALM, "FetchTimeoutConfig ---->>> $timeoutConfig, timeOut: $timeOut")
+//        }.onFailure { err ->
+//            println("网络异常 --->>> FetchTimeoutConfig error --->>>  $err")
+//        }
+//    }
 
     fun markRead(message: MessageEntity) {
         if (!networkAvailable()) {
@@ -599,9 +620,32 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
                     lbeIdentity = lbeIdentity,
                     lbeSession = lbeSession,
                 )
-                turnCustomServiceState.value = true
             } catch (e: Exception) {
-                turnCustomServiceState.value = false
+                Log.d(RETROFIT, "Fetch turnCSResp  error: $e")
+            }
+        }
+    }
+
+    fun endSession() {
+        endCustomServiceDialog.value = false
+        if (!sdkInit) {
+            return
+        }
+        viewModelScope.launch(Dispatchers.IO + coroutineExceptionHandler) {
+            if (null == imApiRepository) {
+                return@launch
+            }
+            try {
+                imApiRepository!!.endSession(
+                    lbeSign = lbeSign,
+                    lbeToken = lbeToken,
+                    lbeIdentity = lbeIdentity,
+                    lbeSession = lbeSession,
+                    body = SessionIdBody(sessionId = lbeSession)
+                )
+//                disConnection()
+//                reCreateSession()
+            } catch (e: Exception) {
                 Log.d(RETROFIT, "Fetch turnCSResp  error: $e")
             }
         }
@@ -764,6 +808,9 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
                         if (remoteLastMsgType == 5) {
                             turnCustomServiceState.value = true
                         }
+                        if (remoteLastMsgType == 6) {
+                            turnCustomServiceState.value = false
+                        }
                         Log.d(
                             TAG, "收到消息 --->> seq: $seq, remoteLastMsgType: $remoteLastMsgType"
                         )
@@ -774,9 +821,9 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
                         println("接收转人工系统消息 --->>> $entity")
 
                         lastCsMessage = entity
-                        if (timeOutConfigOpen.value) {
-                            scheduleTimeoutJob()
-                        }
+//                        if (timeOutConfigOpen.value) {
+//                            scheduleTimeoutJob()
+//                        }
                         viewModelScope.launch {
                             IMLocalRepository.insertMessage(entity)
                             if (entity.senderUid != uid) {
@@ -806,7 +853,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
                     }
 
                     IMMsg.MsgType.KickOffLineMsgType -> {
-                        disConnection()
+//                        disConnection()
                         kickOfflineEvent.value += ","
                         kickOffLine.update { true }
                     }
@@ -835,26 +882,26 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         }, period, period)
     }
 
-    private fun scheduleTimeoutJob() {
-        val period = 1000 * 60 * timeOut
-        Log.d("TimeOut", "超时提醒，period: $period")
-        timeOutTimer?.cancel()
-        timeOutTimer = Timer()
-        timeOutTimer?.schedule(object : TimerTask() {
-            override fun run() {
-                if (lastCsMessage?.msgSeq!! <= seq) {
-                    generateLocalTimeOutMessage()
-                    Log.d(
-                        "TimeOut",
-                        "客服回复重启，用户没回复， seq: $seq, last: ${lastCsMessage?.msgSeq}"
-                    )
-                    isTimeOut.update { _ -> true }
-                    timeOutTimer?.cancel()
-                    timeOutTimer = null
-                }
-            }
-        }, period)
-    }
+//    private fun scheduleTimeoutJob() {
+//        val period = 1000 * 60 * timeOut
+//        Log.d("TimeOut", "超时提醒，period: $period")
+//        timeOutTimer?.cancel()
+//        timeOutTimer = Timer()
+//        timeOutTimer?.schedule(object : TimerTask() {
+//            override fun run() {
+//                if (lastCsMessage?.msgSeq!! <= seq) {
+//                    generateLocalTimeOutMessage()
+//                    Log.d(
+//                        "TimeOut",
+//                        "客服回复重启，用户没回复， seq: $seq, last: ${lastCsMessage?.msgSeq}"
+//                    )
+//                    isTimeOut.update { _ -> true }
+//                    timeOutTimer?.cancel()
+//                    timeOutTimer = null
+//                }
+//            }
+//        }, period)
+//    }
 
     /// 超时处理，只保留在本地
     fun generateLocalTimeOutMessage() {
@@ -942,14 +989,14 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
                     body = msgBody
                 )
                 seq = senMsg.data.msgReq
-                if (lastCsMessage != null) {
-                    Log.d("TimeOut", "seq: $seq, lastCsSeq: ${lastCsMessage!!.msgSeq}")
-                    if (seq > (lastCsMessage?.msgSeq ?: 0)) {
-                        isTimeOut.update { false }
-                        timeOutTimer?.cancel()
-                        timeOutTimer = null
-                    }
-                }
+//                if (lastCsMessage != null) {
+//                    Log.d("TimeOut", "seq: $seq, lastCsSeq: ${lastCsMessage!!.msgSeq}")
+//                    if (seq > (lastCsMessage?.msgSeq ?: 0)) {
+//                        isTimeOut.update { false }
+//                        timeOutTimer?.cancel()
+//                        timeOutTimer = null
+//                    }
+//                }
                 remoteLastMsgType = msgBody.msgType
                 IMLocalRepository.findMsgAndSetSeq(msgBody.clientMsgId, seq)
             } catch (e: Exception) {
@@ -1017,7 +1064,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     private fun genTempUploadInfo(message: MessageEntity): TempUploadInfo {
-        val file = File(message.localFile?.path?:"")
+        val file = File(message.localFile?.path ?: "")
         return TempUploadInfo(
             sendBody = entityToMediaSendBody(message), mediaMessage = MediaMessage(
                 fileName = message.localFile?.fileName ?: "",
@@ -1525,7 +1572,8 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
                         val sign = md5.digest(buffer.array())
                         val hexString = sign.joinToString("") { "%02x".format(it) }
                         Log.d(
-                            UPLOAD, "split chunk size: ${buffer.array().size}, hexString: $hexString"
+                            UPLOAD,
+                            "split chunk size: ${buffer.array().size}, hexString: $hexString"
                         )
 
                         val bodyFromBuffer =
@@ -1594,7 +1642,8 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
                         width = tempUploadInfos[message.clientMsgID]?.thumbWidth ?: 100,
                         height = tempUploadInfos[message.clientMsgID]?.thumbHeight ?: 100,
                         thumbnail = Thumbnail(
-                            url = cacheMediaSource.thumbnail.url, key = cacheMediaSource.thumbnail.key
+                            url = cacheMediaSource.thumbnail.url,
+                            key = cacheMediaSource.thumbnail.key
                         ),
                         resource = Resource(
                             url = mergeUpload.data.location, key = ""
@@ -1612,7 +1661,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
                 }
             }
             jobs[message.clientMsgID] = job
-        }catch (e: Exception){
+        } catch (e: Exception) {
             e.printStackTrace()
         }
     }
@@ -1722,9 +1771,5 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         endCustomServiceDialog.value = true
     }
 
-    fun endCustomService() {
-        //TODO
-        println("结束客服")
-    }
 }
 

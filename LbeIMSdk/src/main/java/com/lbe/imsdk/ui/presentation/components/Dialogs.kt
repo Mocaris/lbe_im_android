@@ -19,17 +19,17 @@ fun EndCustomServiceDialog(onDismissRequest: () -> Unit, endService: () -> Unit)
     Dialog(onDismissRequest = onDismissRequest) {
         IMCupertinoDialogContent(
             title = {
-                Text(stringResource(R.string.confirm_end_service))
+                Text(stringResource(R.string.chat_session_status_31))
             },
             content = {
-                Text(stringResource(R.string.end_service_tip))
+                Text(stringResource(R.string.chat_session_status_33))
             },
             actions = listOf(
                 DialogAction(onClick = onDismissRequest) {
-                    Text(stringResource(R.string.cancel), color = Color.Gray)
+                    Text(stringResource(R.string.chat_session_status_32), color = Color.Gray)
                 },
                 DialogAction(onClick = endService) {
-                    Text(stringResource(R.string.end_service))
+                    Text(stringResource(R.string.chat_session_status_30))
                 }
             )
         )

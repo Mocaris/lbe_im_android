@@ -3,7 +3,7 @@
     <string name="chat_session_status_13">复制成功</string>
     <string name="save_success">保存成功</string>
     <string name="chat_session_status_18">保存</string>
-    
+
     <!-- 聊天界面 -->
     <string name="chat_session_status_1">在线客服</string>
     <string name="chat_session_status_9">网络不可用，请检查你的网络</string>
@@ -25,19 +25,20 @@
     <string name="chat_session_status_14">智能机器人</string>
     <string name="chat_session_status_16">用户 %s</string>
     <string name="chat_session_status_15">游客 %s</string>
-    
+
     <!-- FAQ -->
     <string name="faq_default_greeting">Hi~请简单的描述一下你的问题，我们会尽力协助哦。</string>
     <string name="not_implemented">Not implement yet. --->>> { %d }</string>
-    
+
     <!-- 图片查看 -->
     <string name="content_description_back">返回</string>
     <string name="content_description_send_fail">发送失败</string>
     <string name="content_description_read">已读</string>
     <string name="content_description_close">关闭</string>
-    <string name="robotManage_robot_30">人工客服</string>
-    <string name="end_service">结束服务</string>
-    <string name="confirm_end_service">确认结束服务</string>
-    <string name="end_service_tip">感谢您的咨询，希望下次还可以为您服务</string>
-    <string name="cancel">取消</string>
+    <!--    -->
+    <string name="chat_session_status_30">结束服务</string>
+    <string name="chat_session_status_31">确认结束服务</string>
+    <string name="chat_session_status_32">取消</string>
+    <string name="chat_session_status_33">感谢您的咨询，希望下次还可以为您服务</string>
+    <string name="chat_session_status_34">人工客服</string>
 </resources>

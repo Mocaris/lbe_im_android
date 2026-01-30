@@ -14,8 +14,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -64,6 +62,7 @@ import com.lbe.imsdk.R
 import com.lbe.imsdk.model.MediaMessage
 import com.lbe.imsdk.model.MessageEntity
 import com.lbe.imsdk.model.proto.IMMsg
+import com.lbe.imsdk.model.resp.AnswerTimeoutContent
 import com.lbe.imsdk.model.resp.CsJoinInfo
 import com.lbe.imsdk.model.resp.IconUrl
 import com.lbe.imsdk.model.resp.RankingContent
@@ -74,6 +73,7 @@ import com.lbe.imsdk.utils.FileUtils
 import com.lbe.imsdk.utils.TimeUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -121,8 +121,7 @@ fun Appbar(viewModel: ChatScreenViewModel) {
             val turnCustom = viewModel.turnCustomServiceState.collectAsState().value
             if (turnCustom) {
                 Box(modifier = Modifier.padding(end = 16.dp)) {
-                    TurnCustomServiceButton(
-                        stringResource(R.string.end_service),
+                    CloseCustomerServiceButton(
                         onClick = viewModel::showEndCustomServiceDialog
                     )
                 }
@@ -254,12 +253,14 @@ fun ChatScreen(
 //            if (totalItems > 0 && lastVisibleItemIndex == totalItems - 1) {
 //            }
 //        }
-        snapshotFlow { lazyListState.canScrollForward }.collect { canScrollForward ->
-            if (canScrollForward) {
-                currentFocus.clearFocus()
+        snapshotFlow { lazyListState.canScrollForward }
+            .distinctUntilChanged()
+            .collect { canScrollForward ->
+//            if (canScrollForward) {
+//                currentFocus.clearFocus()
+//            }
+                showToBottomButton = canScrollForward
             }
-            showToBottomButton = canScrollForward
-        }
 
     }
 
@@ -316,55 +317,71 @@ fun ChatScreen(
                 )
             }
 
-            LightPullToRefreshList(
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                isRefreshing = isRefreshing.value,
-                onRefresh = {
-                    isRefreshing.value = true
-                    if (viewModel.currentPage > 1) {
-                        viewModel.currentPage -= 1
-                        viewModel.filterLocalMessages()
-                    } else {
-                        viewModel.loadHistory()
-                    }
-                    delay(500)
-                    isRefreshing.value = false
-                }) {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(start = 16.dp, end = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                    contentPadding = PaddingValues(top = 20.dp),
-                    state = lazyListState
-                ) {
-                    itemsIndexed(
-                        uiState.messages,
-                    ) { index, message ->
-                        MessageItem(
+                    .fillMaxSize()
+                    .weight(1f)
+            ) {
+                LightPullToRefreshList(
+                    modifier = Modifier.fillMaxSize(),
+                    isRefreshing = isRefreshing.value,
+                    onRefresh = {
+                        isRefreshing.value = true
+                        if (viewModel.currentPage > 1) {
+                            viewModel.currentPage -= 1
+                            viewModel.filterLocalMessages()
+                        } else {
+                            viewModel.loadHistory()
+                        }
+                        delay(500)
+                        isRefreshing.value = false
+                    }) {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(start = 16.dp, end = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        contentPadding = PaddingValues(top = 20.dp),
+                        state = lazyListState
+                    ) {
+                        itemsIndexed(
                             uiState.messages,
-                            message = message,
-                            if (message.senderUid == viewModel.uid) MessagePosition.RIGHT
-                            else MessagePosition.LEFT,
-                            viewModel,
-                            navController,
-                            imageLoader,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 20.dp),
-                        )
-                        LaunchedEffect(uiState.messages) {
-                            if (index <= uiState.messages.size - 1) {
-                                val visitAbleMsg = uiState.messages[index]
-                                if (!visitAbleMsg.readed && visitAbleMsg.senderUid != viewModel.uid) {
-                                    viewModel.markRead(message)
+                        ) { index, message ->
+                            MessageItem(
+                                uiState.messages,
+                                message = message,
+                                if (message.senderUid == viewModel.uid) MessagePosition.RIGHT
+                                else MessagePosition.LEFT,
+                                viewModel,
+                                navController,
+                                imageLoader,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 20.dp),
+                            )
+                            LaunchedEffect(uiState.messages) {
+                                if (index <= uiState.messages.size - 1) {
+                                    val visitAbleMsg = uiState.messages[index]
+                                    if (!visitAbleMsg.readed && visitAbleMsg.senderUid != viewModel.uid) {
+                                        viewModel.markRead(message)
+                                    }
                                 }
                             }
                         }
                     }
                 }
+
+                if (showToBottomButton) {
+                    ToBottom(viewModel = viewModel, goToTop = {
+                        coroutineScope.launch {
+                            delay(59)
+                            viewModel.scrollToBottom()
+                            viewModel.resetRecivCount()
+                            showToBottomButton = false
+                        }
+                    })
+                }
+
             }
 
             var isExpanded by remember { mutableStateOf(false) }
@@ -373,15 +390,13 @@ fun ChatScreen(
             Column {
                 if (!viewModel.turnCustomServiceState.collectAsState().value) {
                     Box(modifier = Modifier.padding(start = 16.dp, bottom = 10.dp)) {
-                        TurnCustomServiceButton(
-                            stringResource(R.string.robotManage_robot_30)
-                        ) {
+                        StartCustomerServiceButton() {
                             //人工服务
                             if (kickOffLine) {
                                 Toast.makeText(
                                     context, kickOfflineMessage, Toast.LENGTH_SHORT
                                 ).show()
-                                return@TurnCustomServiceButton
+                                return@StartCustomerServiceButton
                             }
                             viewModel.turnCustomerService()
                         }
@@ -730,18 +745,7 @@ fun ChatScreen(
         if (viewModel.endCustomServiceDialog.collectAsState().value) {
             EndCustomServiceDialog(onDismissRequest = {
                 viewModel.endCustomServiceDialog.value = false
-            }, endService = viewModel::endCustomService)
-        }
-
-        AnimatedVisibility(visible = showToBottomButton, enter = fadeIn(), exit = fadeOut()) {
-            ToBottom(viewModel = viewModel, goToTop = {
-                coroutineScope.launch {
-                    delay(59)
-                    viewModel.scrollToBottom()
-                    viewModel.resetRecivCount()
-                    showToBottomButton = false
-                }
-            })
+            }, endService = viewModel::endSession)
         }
 
         LaunchedEffect(toBottomEvent) {
@@ -788,31 +792,31 @@ fun ChatScreen(
     }
 }
 
-@Composable
-fun timeoutTips(viewModel: ChatScreenViewModel) {
-    val timeoutVisibility by viewModel.isTimeOut.collectAsState()
-    val timeOutConfigOpen by viewModel.timeOutConfigOpen.collectAsState()
-    AnimatedVisibility(visible = timeOutConfigOpen && timeoutVisibility) {
-        Log.d("TimeOut", "timeoutVisibility --->>> $timeoutVisibility")
-        Column {
-            Surface(
-                color = Color(0xffEBEBEB), modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 12.dp)
-            ) {
-                Text(
-                    stringResource(R.string.chat_session_status_3, viewModel.timeOut),
-                    style = TextStyle(
-                        color = Color(0xff979797), fontSize = 12.sp, fontWeight = FontWeight.W400
-                    ),
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(top = 14.dp, bottom = 14.dp)
-                )
-            }
-            Spacer(modifier = Modifier.height(12.dp))
-        }
-    }
-}
+//@Composable
+//fun timeoutTips(viewModel: ChatScreenViewModel) {
+//    val timeoutVisibility by viewModel.isTimeOut.collectAsState()
+//    val timeOutConfigOpen by viewModel.timeOutConfigOpen.collectAsState()
+//    AnimatedVisibility(visible = timeOutConfigOpen && timeoutVisibility) {
+//        Log.d("TimeOut", "timeoutVisibility --->>> $timeoutVisibility")
+//        Column {
+//            Surface(
+//                color = Color(0xffEBEBEB), modifier = Modifier
+//                    .fillMaxWidth()
+//                    .padding(start = 12.dp)
+//            ) {
+//                Text(
+//                    stringResource(R.string.chat_session_status_3, viewModel.timeOut),
+//                    style = TextStyle(
+//                        color = Color(0xff979797), fontSize = 12.sp, fontWeight = FontWeight.W400
+//                    ),
+//                    textAlign = TextAlign.Center,
+//                    modifier = Modifier.padding(top = 14.dp, bottom = 14.dp)
+//                )
+//            }
+//            Spacer(modifier = Modifier.height(12.dp))
+//        }
+//    }
+//}
 
 @Composable
 fun ToBottom(viewModel: ChatScreenViewModel, goToTop: () -> Unit) {
@@ -821,7 +825,7 @@ fun ToBottom(viewModel: ChatScreenViewModel, goToTop: () -> Unit) {
         Surface(
             color = Color(0xff0054FC).copy(alpha = 0.15f),
             modifier = Modifier
-                .padding(bottom = 109.dp, end = 16.dp)
+                .padding(bottom = 50.dp, end = 16.dp)
                 .clip(
                     RoundedCornerShape(
                         topStart = 12.dp,
@@ -942,7 +946,14 @@ fun MessageItem(
         }
 
         IMMsg.ContentType.AnswerMsgTimeoutContentType_VALUE -> {
-            SystemMessageContent(stringResource(R.string.chat_session_status_3, viewModel.timeOut))
+            val content =
+                Gson().fromJson(message.msgBody, AnswerTimeoutContent::class.java)
+            SystemMessageContent(
+                stringResource(
+                    R.string.chat_session_status_3,
+                    content.getTimeoutMinutes()
+                )
+            )
         }
 
         else ->

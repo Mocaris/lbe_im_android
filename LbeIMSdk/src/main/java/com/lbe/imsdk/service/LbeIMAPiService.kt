@@ -5,6 +5,7 @@ import com.lbe.imsdk.model.req.HistoryBody
 import com.lbe.imsdk.model.req.MarkReadReqBody
 import com.lbe.imsdk.model.req.MsgBody
 import com.lbe.imsdk.model.req.SessionBody
+import com.lbe.imsdk.model.req.SessionIdBody
 import com.lbe.imsdk.model.req.SessionListReq
 import com.lbe.imsdk.model.req.TimeoutReqBody
 import com.lbe.imsdk.model.resp.FaqResp
@@ -30,6 +31,7 @@ private const val FETCH_TIMEOUT_CONFIG = "miner-api/trans/timeout-config"
 private const val MARK_READ = "miner-api/trans/mark-msg-as-read"
 private const val FAQ = "miner-api/trans/faq"
 private const val TURN = "miner-api/trans/service-support"
+private const val END_SESSION = "/miner-api/trans/end-session"
 
 interface LbeIMAPiService {
 
@@ -93,5 +95,13 @@ interface LbeIMAPiService {
         @Header(LBE_TOKEN) lbeToken: String,
         @Header(LBE_IDENTITY) lbeIdentity: String,
         @Header(LBE_SESSION) lbeSession: String,
+    )
+    @POST(END_SESSION)
+    suspend fun endSession(
+        @Header(LBE_SIGN) lbeSign: String,
+        @Header(LBE_TOKEN) lbeToken: String,
+        @Header(LBE_IDENTITY) lbeIdentity: String,
+        @Header(LBE_SESSION) lbeSession: String,
+        @Body body: SessionIdBody
     )
 }

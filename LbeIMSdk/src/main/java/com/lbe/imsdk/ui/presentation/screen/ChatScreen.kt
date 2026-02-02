@@ -951,7 +951,7 @@ fun MessageItem(
             SystemMessageContent(
                 stringResource(
                     R.string.chat_session_status_3,
-                    content.getTimeoutMinutes()
+                    content.timeout
                 )
             )
         }

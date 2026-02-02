@@ -2,9 +2,7 @@ package com.lbe.imsdk.model.resp
 
 data class AnswerTimeoutContent(
 // 超时时间 秒
-    val timeout: Long,
+    val timeout: Int,
 ) {
-    fun getTimeoutMinutes(): Long {
-        return timeout / 60
-    }
+
 }

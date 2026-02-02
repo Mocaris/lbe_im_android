@@ -27,7 +27,8 @@ object Converts {
 
     fun protoTypeConvert(proto: IMMsg.MsgEntityToFrontEnd): Int {
         val convertMsgType = when (proto.msgType) {
-            IMMsg.MsgType.TextMsgType -> when (proto.msgBody.msgType) {
+            IMMsg.MsgType.TextMsgType ->
+                when (proto.msgBody.msgType) {
                 IMMsg.ContentType.TextContentType -> 1
                 IMMsg.ContentType.ImgContentType -> 2
                 IMMsg.ContentType.VideoContentType -> 3
@@ -40,6 +41,7 @@ object Converts {
                 IMMsg.ContentType.TransferContentType -> 11 // 转接
                 IMMsg.ContentType.SystemContentType -> 12
                 IMMsg.ContentType.UnsupportedContentType -> 13 // 无客服在线
+                IMMsg.ContentType.AnswerMsgTimeoutContentType -> IMMsg.ContentType.AnswerMsgTimeoutContentType_VALUE // 超时未回复
                 else -> 39
             }
 

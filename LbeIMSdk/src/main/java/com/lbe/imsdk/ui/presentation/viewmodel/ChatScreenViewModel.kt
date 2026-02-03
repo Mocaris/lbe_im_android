@@ -13,7 +13,6 @@ import android.os.Build
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.runtime.State
-import androidx.core.net.toFile
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -43,6 +42,7 @@ import com.lbe.imsdk.utils.FileLogger
 import com.lbe.imsdk.utils.TimeUtils.timeStampGen
 import com.lbe.imsdk.utils.UUIDUtils.uuidGen
 import com.lbe.imsdk.utils.UploadBigFileUtils
+import com.tinder.scarlet.Lifecycle
 import com.tinder.scarlet.Message
 import com.tinder.scarlet.Scarlet
 import com.tinder.scarlet.WebSocket
@@ -51,6 +51,7 @@ import com.tinder.scarlet.WebSocket.Event.OnConnectionClosing
 import com.tinder.scarlet.WebSocket.Event.OnConnectionFailed
 import com.tinder.scarlet.WebSocket.Event.OnConnectionOpened
 import com.tinder.scarlet.WebSocket.Event.OnMessageReceived
+import com.tinder.scarlet.lifecycle.LifecycleRegistry
 import com.tinder.scarlet.streamadapter.rxjava2.RxJava2StreamAdapterFactory
 import com.tinder.scarlet.websocket.okhttp.newWebSocketFactory
 import io.reactivex.disposables.Disposable
@@ -166,7 +167,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
     private val coroutineExceptionHandler = CoroutineExceptionHandler { _, throwable ->
         println("coroutineExceptionHandler --->> Unhandled exception: ${throwable.message}")
     }
-
+    private var socketLifecycleRegistry: LifecycleRegistry? = null
     private var pingTimer: Timer? = null
 
     private val fileLogger = FileLogger(application)
@@ -186,6 +187,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     override fun onCleared() {
+        socketLifecycleRegistry?.onNext(Lifecycle.State.Destroyed)
         networkMonitor.stopMonitoring()
 //        disConnection()
         println("LbeChat Lifecycle --->> ChatScreenViewModel onCleared")
@@ -265,19 +267,21 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         jobs["sdkJob"] = sdkJob
     }
 
-//    private fun reCreateSession() {
-//        viewModelScope.launch(Dispatchers.IO + coroutineExceptionHandler) {
-//            try {
-//                createSession()
-//                fetchSessionList()
-//                observerConnection()
-//                schedulePingJob()
-//                faq(faqReqBody = FaqReqBody(faqType = 0, id = ""))
-//            } catch (e: Exception) {
-//                e.printStackTrace()
-//            }
-//        }
-//    }
+    private suspend fun reCreateSession() {
+        try {
+            createSession()
+            allMessageSize = 0
+            _uiState.postValue(_uiState.value?.copy(messages = emptyList()))
+            sessionList.clear()
+            currentSessionIndex = 0
+            fetchSessionList()
+            observerConnection()
+            schedulePingJob()
+            faq(faqReqBody = FaqReqBody(faqType = 0, id = ""))
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
 
     private fun networkAvailable(): Boolean {
         return networkMonitor.isNetworkAvailable()
@@ -613,6 +617,9 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
             if (null == imApiRepository) {
                 return@launch
             }
+            if (endSession) {
+                reCreateSession()
+            }
             try {
                 imApiRepository!!.turnCustomerService(
                     lbeSign = lbeSign,
@@ -738,16 +745,20 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
             if (wssHost.isEmpty()) {
                 return
             }
-            val scarletInstance = Scarlet.Builder().webSocketFactory(
-                okHttpClient.newWebSocketFactory(
-                    DynamicHeaderUrlRequestFactory(
-                        url = wssHost, lbeToken = lbeToken, lbeSession = lbeSession,
+            socketLifecycleRegistry?.onNext(Lifecycle.State.Destroyed)
+            socketLifecycleRegistry = null
+            socketLifecycleRegistry = LifecycleRegistry()
+            val scarletInstance = Scarlet.Builder()
+                .lifecycle(socketLifecycleRegistry!!)
+                .webSocketFactory(
+                    okHttpClient.newWebSocketFactory(
+                        DynamicHeaderUrlRequestFactory(
+                            url = wssHost, lbeToken = lbeToken, lbeSession = lbeSession,
+                        )
                     )
-                )
-            ).addStreamAdapterFactory(RxJava2StreamAdapterFactory()).build()
+                ).addStreamAdapterFactory(RxJava2StreamAdapterFactory()).build()
 
             chatService = scarletInstance.create<ChatService>()
-
             Log.d(TAG, "Observing Connection")
             updateConnectionStatus(ConnectionStatus.CONNECTING)
 
@@ -759,6 +770,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
                     error.localizedMessage?.let { Log.e(TAG, "websocket 出错 ---->>> $it") }
                 },
             )
+            socketLifecycleRegistry?.onNext(Lifecycle.State.Started)
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -872,7 +884,8 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         val period = 1000 * 15L
         val toServer = IMMsg.MsgEntityToServer.newBuilder().setMsgType(IMMsg.MsgType.TextMsgType)
             .setMsgBody(IMMsg.MsgBody.newBuilder().setMsgBody("ping").build()).build()
-        if (pingTimer == null) pingTimer = Timer()
+        pingTimer?.cancel()
+        pingTimer = Timer()
         pingTimer?.schedule(object : TimerTask() {
             override fun run() {
                 val sendStatus = chatService?.sendMessage(toServer.toByteArray())
@@ -931,50 +944,30 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
             return
         }
 
-        if (endSession) {
-            sessionList.clear()
-            currentSessionIndex = 0
-            viewModelScope.launch(Dispatchers.IO + coroutineExceptionHandler) {
-                createSession()
-                fetchSessionList()
-                faq(faqReqBody = FaqReqBody(faqType = 0, id = ""))
-                val sendBody = genMsgBody(type = 1, msgBody = _inputMsg.value ?: "")
-                send(
-                    messageSent = messageSent,
-                    preSend = {
-                        insertCacheMaybeUpdateUI(sendBody, localFile = null, updateUI = false)
-                    },
-                    sendBody,
-                )
+        viewModelScope.launch(Dispatchers.IO + coroutineExceptionHandler) {
+            if (endSession) {
+                reCreateSession()
             }
-            return
-        }
 
-        val sendBody = genMsgBody(type = 1, msgBody = _inputMsg.value ?: "")
-        send(
-            messageSent = messageSent,
-            preSend = {
-                insertCacheMaybeUpdateUI(sendBody, localFile = null, updateUI = false)
-            },
-            sendBody,
-        )
-        clearInput()
+            val sendBody = genMsgBody(type = 1, msgBody = _inputMsg.value ?: "")
+            send(
+                messageSent = messageSent,
+                preSend = {
+                    insertCacheMaybeUpdateUI(sendBody, localFile = null, updateUI = false)
+                },
+                sendBody,
+            )
+            clearInput()
+        }
     }
 
     private fun senMessageFromMedia(msgBody: MsgBody, preSend: () -> Unit) {
-        if (endSession) {
-            sessionList.clear()
-            currentSessionIndex = 0
-            viewModelScope.launch(Dispatchers.IO + coroutineExceptionHandler) {
-                createSession()
-                fetchSessionList()
-                faq(faqReqBody = FaqReqBody(faqType = 0, id = ""))
+        viewModelScope.launch(Dispatchers.IO + coroutineExceptionHandler) {
+            if (endSession) {
+                reCreateSession()
                 send(messageSent = {}, preSend = preSend, msgBody = msgBody)
             }
-            return
         }
-
-        send(messageSent = {}, preSend = preSend, msgBody = msgBody)
     }
 
     private fun send(messageSent: () -> Unit, preSend: () -> Unit, msgBody: MsgBody) {

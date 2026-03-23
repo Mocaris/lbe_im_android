@@ -25,7 +25,7 @@ fun SystemMessageContent(content: String){
         Text(
             content,
             style = TextStyle(
-                color = Color(0xFF979797), fontSize = 10.sp, fontWeight = FontWeight.W400,
+                color = Color(0xFF979797), fontSize = 12.sp, fontWeight = FontWeight.W400,
             ),
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth(),

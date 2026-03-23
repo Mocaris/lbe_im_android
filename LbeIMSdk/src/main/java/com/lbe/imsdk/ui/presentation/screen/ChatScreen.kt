@@ -340,8 +340,8 @@ fun ChatScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(start = 16.dp, end = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                        contentPadding = PaddingValues(top = 20.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(top = 20.dp, bottom = 20.dp),
                         state = lazyListState
                     ) {
                         itemsIndexed(
@@ -356,8 +356,7 @@ fun ChatScreen(
                                 navController,
                                 imageLoader,
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(bottom = 20.dp),
+                                    .fillMaxWidth(),
                             )
                             LaunchedEffect(uiState.messages) {
                                 if (index <= uiState.messages.size - 1) {

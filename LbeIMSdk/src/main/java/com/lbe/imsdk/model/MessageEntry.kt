@@ -88,11 +88,20 @@ class MessageEntity : RealmObject {
 
         other as MessageEntity
 
-        return clientMsgID == other.clientMsgID
+        if (msgType != other.msgType) return false
+        if (msgSeq != other.msgSeq) return false
+        if (sessionId != other.sessionId) return false
+        if (clientMsgID != other.clientMsgID) return false
+
+        return true
     }
 
     override fun hashCode(): Int {
-        return clientMsgID.hashCode()
+        var result = msgType
+        result = 31 * result + msgSeq
+        result = 31 * result + sessionId.hashCode()
+        result = 31 * result + clientMsgID.hashCode()
+        return result
     }
 
 

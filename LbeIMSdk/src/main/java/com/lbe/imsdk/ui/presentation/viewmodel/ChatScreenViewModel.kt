@@ -65,6 +65,7 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.internal.notify
 import retrofit2.HttpException
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -692,7 +693,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
                 seq = history.data.content.last().msgSeq
                 for (content in history.data.content) {
                     when (content.msgType) {
-                        1, 2, 4, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13 -> {
+                        1, 2, 4, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13,14 -> {
                             val entity = MessageEntity().apply {
                                 sessionId = content.sessionId
                                 senderUid = content.senderUid
@@ -1763,10 +1764,10 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
 
     private fun addSingleMsgToUI(message: MessageEntity) {
         Log.d(TAG, "addSingleMsgToUI: $message")
-        val messages = uiState.value?.messages?.toMutableList()
+        val messages = uiState.value?.messages
         messages?.add(message)
         allMessageSize = messages?.size ?: 0
-        _uiState.postValue(messages?.let { _uiState.value?.copy(messages = it.toMutableSet()) })
+        _uiState.postValue(messages?.let { _uiState.value?.copy(messages = it) })
     }
 
     private fun markMsgReadFromUI(sessionId: String, seqs: MutableList<Long>) {

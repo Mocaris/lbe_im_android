@@ -95,7 +95,7 @@ interface LbeIMAPiService {
         @Header(LBE_TOKEN) lbeToken: String,
         @Header(LBE_IDENTITY) lbeIdentity: String,
         @Header(LBE_SESSION) lbeSession: String,
-    )
+    ):FaqResp
     @POST(END_SESSION)
     suspend fun endSession(
         @Header(LBE_SIGN) lbeSign: String,

@@ -77,8 +77,8 @@ class LbeImApiRepository(private val imBaseUrl: String) {
         lbeToken: String,
         lbeIdentity: String,
         lbeSession: String,
-    ) {
-        imApiService.turnCustomerService(
+    ): FaqResp {
+       return imApiService.turnCustomerService(
             lbeSign = lbeSign,
             lbeToken = lbeToken,
             lbeIdentity = lbeIdentity,

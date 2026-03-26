@@ -52,6 +52,9 @@ import com.tinder.scarlet.WebSocket.Event.OnConnectionFailed
 import com.tinder.scarlet.WebSocket.Event.OnConnectionOpened
 import com.tinder.scarlet.WebSocket.Event.OnMessageReceived
 import com.tinder.scarlet.lifecycle.LifecycleRegistry
+import com.tinder.scarlet.retry.BackoffStrategy
+import com.tinder.scarlet.retry.ExponentialBackoffStrategy
+import com.tinder.scarlet.retry.LinearBackoffStrategy
 import com.tinder.scarlet.streamadapter.rxjava2.RxJava2StreamAdapterFactory
 import com.tinder.scarlet.websocket.okhttp.newWebSocketFactory
 import io.reactivex.disposables.Disposable
@@ -70,6 +73,8 @@ import java.security.MessageDigest
 import java.util.*
 import java.util.concurrent.*
 import kotlin.collections.*
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 enum class ConnectionStatus {
     NOT_STARTED, OPENED, CLOSED, CONNECTING, CLOSING, FAILED, RECEIVED
@@ -271,7 +276,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         try {
             createSession()
             allMessageSize = 0
-            _uiState.postValue(_uiState.value?.copy(messages = emptyList()))
+            _uiState.postValue(_uiState.value?.copy(messages = mutableSetOf()))
             sessionList.clear()
             currentSessionIndex = 0
             fetchSessionList()
@@ -289,7 +294,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
 
     private suspend fun <T> safeApiCall(apiCall: suspend () -> T): Result<T> {
         return try {
-            val result = apiCall() ?: throw Exception("result is null");
+            val result = apiCall() ?: throw Exception("result is null")
             Result.success(result)
         } catch (e: HttpException) {
             println("SafeApiCall HTTP error: ${e.code()} - ${e.message()}")
@@ -474,7 +479,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
                 it.sortBy { t -> t.sendTime }
             }
             allMessageSize = messages?.size ?: 0
-            _uiState.postValue(messages?.let { _uiState.value?.copy(messages = it) })
+            _uiState.postValue(messages?.let { _uiState.value?.copy(messages = it.toMutableSet()) })
             Log.d(
                 REALM,
                 "发送完更新列表 ---->>> messages: ${messages?.size}, allMessageSize: $allMessageSize, \n $messages"
@@ -500,7 +505,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
                 it.sortBy { t -> t.sendTime }
             }
             allMessageSize = messages?.size ?: 0
-            _uiState.postValue(messages?.let { _uiState.value?.copy(messages = it) })
+            _uiState.postValue(messages?.let { _uiState.value?.copy(messages = it.toMutableSet()) })
             Log.d(
                 REALM,
                 "分页后 messageList size --->> ${messages?.size}, allMessageSize: $allMessageSize"
@@ -621,12 +626,15 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
                 reCreateSession()
             }
             try {
-                imApiRepository!!.turnCustomerService(
+                val resp = imApiRepository!!.turnCustomerService(
                     lbeSign = lbeSign,
                     lbeToken = lbeToken,
                     lbeIdentity = lbeIdentity,
                     lbeSession = lbeSession,
                 )
+                if (checkEndSession(resp.code)) {
+                    return@launch
+                }
             } catch (e: Exception) {
                 Log.d(RETROFIT, "Fetch turnCSResp  error: $e")
             }
@@ -750,6 +758,8 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
             socketLifecycleRegistry = LifecycleRegistry()
             val scarletInstance = Scarlet.Builder()
                 .lifecycle(socketLifecycleRegistry!!)
+                /// 重连策略 3 秒重连
+                .backoffStrategy(ExponentialBackoffStrategy(3000L, 5000L))
                 .webSocketFactory(
                     okHttpClient.newWebSocketFactory(
                         DynamicHeaderUrlRequestFactory(
@@ -917,19 +927,39 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
 //    }
 
     /// 超时处理，只保留在本地
-    fun generateLocalTimeOutMessage() {
+//    fun generateLocalTimeOutMessage() {
 //        viewModelScope.launch(Dispatchers.IO) {
 //            val sendBody = genMsgBody(type = CustomMessageType.TYPE_TIME_OUT_REPLY, msgBody = "")
 //            insertCacheMaybeUpdateUI(sendBody, localFile = null, updateUI = false)
 //        }
-    }
+//    }
 
     private fun updateConnectionStatus(connectionStatus: ConnectionStatus) {
         Log.d(TAG, "websocket update status --->>> ${connectionStatus.name}")
         fileLogger.log(TAG, "websocket update status --->>> ${connectionStatus.name}")
+        if (connectionStatus == ConnectionStatus.OPENED) {
+            viewModelScope.launch(Dispatchers.IO) {
+                delay(2.seconds)
+                sessionList.clear()
+                currentSessionIndex = 0
+                fetchSessionList()
+            }
+        }
+
 //        viewModelScope.launch(Dispatchers.Main) {
 //            _uiState.postValue(_uiState.value?.copy(connectionStatus = connectionStatus))
 //        }
+    }
+
+    // 检查是否结束会话
+    private fun checkEndSession(code: Int): Boolean {
+        if (code != 20003) {
+            return false
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            reCreateSession()
+        }
+        return true
     }
 
     fun onMessageChange(message: String) {
@@ -981,6 +1011,10 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
                     lbeSession = lbeSession,
                     body = msgBody
                 )
+                if (checkEndSession(senMsg.code.toInt())) {
+                    return@launch
+                }
+                senMsg.data ?: return@launch
                 seq = senMsg.data.msgReq
 //                if (lastCsMessage != null) {
 //                    Log.d("TimeOut", "seq: $seq, lastCsSeq: ${lastCsMessage!!.msgSeq}")
@@ -1044,6 +1078,10 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
                         lbeIdentity = lbeIdentity,
                         body = body
                     )
+                    if (checkEndSession(senMsg.code.toInt())) {
+                        return@launch
+                    }
+                    senMsg.data ?: return@launch
                     seq = senMsg.data.msgReq
                     IMLocalRepository.updateResendMessage(clientMsgId, newClientMsgId, seq)
                 } catch (e: Exception) {
@@ -1701,7 +1739,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
             )
         }
         viewModelScope.launch(Dispatchers.Main) {
-            _uiState.postValue(messages?.let { _uiState.value?.copy(messages = it) })
+            _uiState.postValue(messages?.let { _uiState.value?.copy(messages = it.toMutableSet()) })
         }
     }
 
@@ -1728,7 +1766,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
         val messages = uiState.value?.messages?.toMutableList()
         messages?.add(message)
         allMessageSize = messages?.size ?: 0
-        _uiState.postValue(messages?.let { _uiState.value?.copy(messages = it) })
+        _uiState.postValue(messages?.let { _uiState.value?.copy(messages = it.toMutableSet()) })
     }
 
     private fun markMsgReadFromUI(sessionId: String, seqs: MutableList<Long>) {
@@ -1749,7 +1787,7 @@ class ChatScreenViewModel(application: Application) : AndroidViewModel(applicati
             }
         }
         viewModelScope.launch(Dispatchers.Main) {
-            _uiState.postValue(messages?.let { _uiState.value?.copy(messages = it) })
+            _uiState.postValue(messages?.let { _uiState.value?.copy(messages = it.toMutableSet()) })
         }
     }
 

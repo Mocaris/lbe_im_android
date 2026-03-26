@@ -65,7 +65,8 @@ fun NickIdPrompt(
     ) -> Unit,
 ) {
 //    val domain = remember { mutableStateOf("https://4jlfe1imqsee.imsz.online") }
-    val domain = remember { mutableStateOf("http://4l6li7zz5lr8.imgo.sz") }
+//    val domain = remember { mutableStateOf("http://4l6li7zz5lr8.imgo.sz") }
+    val domain = remember { mutableStateOf("https://4ko2uq1s3osm.imsz.online") }
     // HermitK1
     var nickId by remember { mutableStateOf("3710512892936195") }
 //    var nickId by remember { mutableStateOf("") }
@@ -85,10 +86,12 @@ fun NickIdPrompt(
     var lbeSign by remember {
         mutableStateOf(
 //            "0x49ca5e1d651d4fbff606d0efb2800822699e17ef972708ccaf95f5c41eb4ce1b39d02d467fa3db27bd129dad648cbfe8cc5f34f4cf54fe933b78205d19b0a17a1c",
-            "0xbb48b4f8b551212b9831b975f9d05faf210e0809f68cccf84d6f813354c2c8340e150f539bb38926c1384ec347231d2c761e94d2fadd84853d57cb0aaabea3041b",
+//            "0xbb48b4f8b551212b9831b975f9d05faf210e0809f68cccf84d6f813354c2c8340e150f539bb38926c1384ec347231d2c761e94d2fadd84853d57cb0aaabea3041b",
+            "0x3d2ab33580544dc70fa287f5984d81fbfe552959f66174ffec3b76e3719e92c3114f3a5abac5fa7feca946b927355738cec36c3d6df6c5f0a6f6916596a7ba7f1b",
         )
     }
-    var lbeIdentity by remember { mutableStateOf("4l6li7zz5lr8") }
+//    var lbeIdentity by remember { mutableStateOf("4l6li7zz5lr8") }
+    var lbeIdentity by remember { mutableStateOf("4ko2uq1s3osm") }
 //    var lbeSign by remember { mutableStateOf("0x4f227352cf96fab9e67064e08219a86cd398fdbb067aa53fc7ad49deb882a0ad49b1d073ae0b3f74d39d288f3cf3feab6f102c1993532e1239e2f48e4afb534b1c") }
 //    var lbeIdentity by remember { mutableStateOf("46gytl9ojaft") }
 
@@ -112,7 +115,7 @@ fun NickIdPrompt(
     }
 //    var headerIcon by remember { mutableStateOf("") }
 
-    var groupID by remember { mutableStateOf("1008") }
+    var groupID by remember { mutableStateOf("1009") }
 
 //    var source by remember { mutableStateOf("Android") }
 

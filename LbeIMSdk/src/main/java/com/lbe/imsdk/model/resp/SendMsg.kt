@@ -7,7 +7,7 @@ data class SendMsg(
     val code: Long,
     val msg: String,
     val dlt: String,
-    @SerializedName("data") val data: SendData,
+    @SerializedName("data") val data: SendData?,
 )
 
 data class SendData(

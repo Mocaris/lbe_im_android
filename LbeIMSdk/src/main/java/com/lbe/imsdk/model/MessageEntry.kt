@@ -44,6 +44,7 @@ class MessageEntity : RealmObject {
 
     var timestamp: RealmInstant = RealmInstant.now()
 
+
     companion object {
         fun copy(source: MessageEntity): MessageEntity {
             val message = MessageEntity()
@@ -80,6 +81,21 @@ class MessageEntity : RealmObject {
     override fun toString(): String {
         return "MessageEntity(sessionId: $sessionId, senderUid: $senderUid, msgBody: $msgBody, msgType: $msgType, msgSeq: $msgSeq, clientMsgID: $clientMsgID, sendTime: $sendTime, sendSuccess: $sendSuccess, readed: $readed, pendingUpload: $pendingUpload, \n uploadTask: $uploadTask, \n localFile: $localFile)"
     }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as MessageEntity
+
+        return clientMsgID == other.clientMsgID
+    }
+
+    override fun hashCode(): Int {
+        return clientMsgID.hashCode()
+    }
+
+
 }
 
 class LocalMediaFile : EmbeddedRealmObject {

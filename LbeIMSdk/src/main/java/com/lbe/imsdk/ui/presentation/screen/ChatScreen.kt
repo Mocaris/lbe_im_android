@@ -80,7 +80,7 @@ import java.io.File
 import java.util.*
 
 data class ChatScreenUiState(
-    var messages: List<MessageEntity> = emptyList(),
+    var messages: MutableSet<MessageEntity> = mutableSetOf(),
     val connectionStatus: ConnectionStatus = ConnectionStatus.NOT_STARTED,
     val login: Boolean = false,
 )
@@ -344,11 +344,12 @@ fun ChatScreen(
                         contentPadding = PaddingValues(top = 20.dp, bottom = 20.dp),
                         state = lazyListState
                     ) {
+                       val msgList= uiState.messages.toList()
                         itemsIndexed(
-                            uiState.messages,
+                            msgList,
                         ) { index, message ->
                             MessageItem(
-                                uiState.messages,
+                                msgList,
                                 message = message,
                                 if (message.senderUid == viewModel.uid) MessagePosition.RIGHT
                                 else MessagePosition.LEFT,
@@ -360,7 +361,7 @@ fun ChatScreen(
                             )
                             LaunchedEffect(uiState.messages) {
                                 if (index <= uiState.messages.size - 1) {
-                                    val visitAbleMsg = uiState.messages[index]
+                                    val visitAbleMsg = uiState.messages.toList()[index]
                                     if (!visitAbleMsg.readed && visitAbleMsg.senderUid != viewModel.uid) {
                                         viewModel.markRead(message)
                                     }

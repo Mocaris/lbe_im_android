@@ -1,5 +1,6 @@
 package com.lbe.imsdk.ui.presentation.components
 
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
@@ -26,10 +27,10 @@ fun EndCustomServiceDialog(onDismissRequest: () -> Unit, endService: () -> Unit)
             },
             actions = listOf(
                 DialogAction(onClick = onDismissRequest) {
-                    Text(stringResource(R.string.chat_session_status_32), color = Color.Gray)
+                    Text(stringResource(R.string.chat_session_status_32))
                 },
                 DialogAction(onClick = endService) {
-                    Text(stringResource(R.string.chat_session_status_30))
+                    Text(stringResource(R.string.chat_session_status_30), color = MaterialTheme.colorScheme.primary)
                 }
             )
         )

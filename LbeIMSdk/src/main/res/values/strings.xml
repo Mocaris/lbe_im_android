@@ -40,5 +40,5 @@
     <string name="chat_session_status_31">Confirm end of service</string>
     <string name="chat_session_status_32">Cancel</string>
     <string name="chat_session_status_33">Thank you for your inquiry. Hope to serve you again next time.</string>
-    <string name="chat_session_status_34">Human Customer Service</string>
+    <string name="chat_session_status_34">Customer service representative</string>
 </resources>
